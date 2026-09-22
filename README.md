@@ -25,11 +25,12 @@ in the system tray / menu bar. Right-click its icon there to reopen the
 dashboard or quit. **Linux:** it runs in the terminal window you opened it
 from; leave that open, and close it (or Ctrl+C) to stop the server.
 
-**macOS note:** since the app isn't signed with a paid Apple developer
-certificate, Gatekeeper will block it the first time. Right-click the
-unzipped file → **Open**. If it's still blocked, go to **System Settings →
-Privacy & Security**, scroll down, and click **"Open Anyway"** next to the
-message about the file, then try opening it again.
+**macOS note:** releases are signed with a Developer ID certificate and
+notarized by Apple, so the app should just open normally the first time
+(you may see a one-time "downloaded from the internet, are you sure?"
+prompt — that's normal, just click Open). If Gatekeeper still blocks it for
+any reason, right-click the app → **Open**, or go to **System Settings →
+Privacy & Security**, scroll down, and click **"Open Anyway"**.
 
 ## How it works
 
@@ -76,6 +77,50 @@ aprs_dashboard/
   LICENSE                         # GPLv3
   templates/dashboard.html
 ```
+
+## Signing & notarizing macOS releases (maintainer setup, one-time)
+
+The build workflow (`.github/workflows/build.yml`) automatically signs and
+notarizes the macOS app with a Developer ID Application certificate — but
+only once these repository secrets are set (Settings → Secrets and
+variables → Actions → New repository secret):
+
+**New secrets needed** (specific to this repo — a `.p12` for a **Developer
+ID Application** certificate, which is different from the "Apple
+Distribution" certificate used for App Store submissions):
+
+| Secret | What it is |
+|---|---|
+| `MACOS_CERTIFICATE` | A **Developer ID Application** certificate (not "Apple Distribution" — that one won't work here), exported from Keychain Access as a `.p12` file, then base64-encoded. In Keychain Access: find the certificate (and its private key) under "My Certificates" → right-click → **Export** → save as `.p12` with a password. Then run `base64 -i certificate.p12 \| pbcopy` in Terminal and paste the result as the secret value. |
+| `MACOS_CERTIFICATE_PWD` | The password you set when exporting the `.p12` above. |
+| `MACOS_CI_KEYCHAIN_PWD` | Any password you make up — it only protects a temporary keychain created during the CI build, and is thrown away right after. |
+
+**Reused from the `ftapp` repo** (same App Store Connect API key works for
+notarization here — just copy the same secret values into this repo's
+Settings, or move them to GitHub **Organization** secrets and grant this
+repo access so both point at the same value without duplicating):
+
+| Secret | What it is |
+|---|---|
+| `ASC_KEY_ID` | App Store Connect API key ID (same value as in `ftapp`). |
+| `ASC_ISSUER_ID` | App Store Connect API issuer ID (same value as in `ftapp`). |
+| `ASC_KEY_CONTENT` | The `.p8` private key content for that API key (same value as in `ftapp`). |
+
+`APPLE_TEAM_ID` from `ftapp` is **not** needed here — authenticating
+notarization with an API key doesn't require it.
+
+Once the new secrets are set (and the reused ones copied or shared via
+Organization secrets), every tag push (`git tag vX.Y.Z && git push origin
+vX.Y.Z`) builds, code-signs, and notarizes the macOS app automatically —
+nothing else to do. If a secret is missing or wrong, the macOS build job
+fails with a clear error at the signing/notarization step (the Windows and
+Linux builds are unaffected either way).
+
+**Windows note:** code signing isn't set up yet — there's no existing
+Authenticode certificate to reuse. Until one is purchased/generated (a
+`.pfx`/`.p12` code signing certificate + password, added as new secrets and
+a signing step), the Windows build stays unsigned and SmartScreen will keep
+showing its warning on first run.
 
 ## License
 

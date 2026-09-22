@@ -46,6 +46,51 @@ jobs:
       - name: Buildar executável
         run: pyinstaller --noconfirm aprs_dashboard.spec
 
+      - name: Import Apple signing certificate
+        if: matrix.os == 'macos-latest'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
+        run: |
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          rm certificate.p12
+
+      - name: Code sign app (Developer ID)
+        if: matrix.os == 'macos-latest'
+        run: |
+          IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.+)".*/\1/')
+          echo "Signing with: $IDENTITY"
+          codesign --deep --force --options runtime --entitlements entitlements.plist --sign "$IDENTITY" "dist/aprs_dashboard.app"
+          codesign --verify --deep --strict --verbose=2 "dist/aprs_dashboard.app"
+
+      - name: Notarize app (App Store Connect API key, reused from ftapp)
+        if: matrix.os == 'macos-latest'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: |
+          if [[ "$ASC_KEY_CONTENT" == -----BEGIN* ]]; then
+            printf '%s' "$ASC_KEY_CONTENT" > AuthKey.p8
+          else
+            echo "$ASC_KEY_CONTENT" | base64 --decode > AuthKey.p8
+          fi
+          ditto -c -k --keepParent "dist/aprs_dashboard.app" notarize.zip
+          xcrun notarytool submit notarize.zip \
+            --key AuthKey.p8 \
+            --key-id "$ASC_KEY_ID" \
+            --issuer "$ASC_ISSUER_ID" \
+            --wait
+          xcrun stapler staple "dist/aprs_dashboard.app"
+          rm -f notarize.zip AuthKey.p8
+
       - name: Package artifact
         shell: bash
         run: |
