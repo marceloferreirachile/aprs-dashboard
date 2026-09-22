@@ -85,7 +85,8 @@ def main():
 
     web = app_module.config.get("web", {})
     host = web.get("host", "0.0.0.0")
-    port = web.get("port", 8080)
+    preferred_port = web.get("port", 8080)
+    port = app_module.find_free_port(host, preferred_port)
     open_url = f"http://127.0.0.1:{port}"
 
     config = uvicorn.Config(app_module.app, host=host, port=port, log_level="info")

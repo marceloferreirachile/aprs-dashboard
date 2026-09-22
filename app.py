@@ -323,8 +323,32 @@ if os.path.isdir(os.path.join(BASE_DIR, "static")):
     app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 
+def find_free_port(host, preferred_port, tries=15):
+    """Se a porta preferida já estiver em uso por outro programa (Tomcat,
+    outro servidor de dev, etc — 8080 é bem disputada), tenta as próximas
+    (preferred, preferred+1, ...) até achar uma livre, em vez de simplesmente
+    falhar ao abrir."""
+    import socket as _socket
+
+    bind_host = host if host not in ("0.0.0.0", "") else "127.0.0.1"
+    for port in range(preferred_port, preferred_port + tries):
+        with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as s:
+            s.setsockopt(_socket.SOL_SOCKET, _socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((bind_host, port))
+                return port
+            except OSError:
+                continue
+    return preferred_port  # nenhuma livre encontrada — deixa o uvicorn dar o erro real
+
+
 if __name__ == "__main__":
     import uvicorn
 
     web = config.get("web", {})
-    uvicorn.run("app:app", host=web.get("host", "0.0.0.0"), port=web.get("port", 8080), reload=False)
+    host = web.get("host", "0.0.0.0")
+    preferred_port = web.get("port", 8080)
+    port = find_free_port(host, preferred_port)
+    if port != preferred_port:
+        log.warning("Porta %s ocupada por outro programa — usando %s no lugar.", preferred_port, port)
+    uvicorn.run("app:app", host=host, port=port, reload=False)

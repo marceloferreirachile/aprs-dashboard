@@ -16,7 +16,9 @@ callsign. No account, no cloud service, no data leaving your network.
 pick your operating system (Windows, macOS, or Linux), download the file,
 and run it. No Python, no terminal, no dependencies to install.
 
-The app opens a browser window at `http://localhost:8080` and everything —
+The app opens a browser window (normally at `http://localhost:8080` — if
+that port is already taken by something else, it automatically picks the
+next free one) and everything —
 your digi's IP address, ports, callsign — is configured from the
 **Settings** tab inside the dashboard itself.
 
