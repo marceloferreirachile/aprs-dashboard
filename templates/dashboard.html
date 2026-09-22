@@ -109,7 +109,7 @@
     <div class="sub" id="last-update">—</div>
     <div class="lang-switch">
       <button data-lang="pt" title="Português">🇧🇷</button>
-      <button data-lang="es" title="Español (Latinoamérica)">🇲🇽</button>
+      <button data-lang="es" title="Español (Latinoamérica)">🇦🇷</button>
       <button data-lang="en" title="English (US)">🇺🇸</button>
     </div>
   </div>
@@ -711,14 +711,27 @@ async function loadSettings() {
   $('cfg-lon').value = s.digi_lon ?? '';
   $('cfg-local-enabled').checked = !!s.local_feed_enabled;
   $('cfg-local-host').value = s.local_feed_host || '';
-  $('cfg-local-port').value = s.local_feed_port ?? '';
+  // KISS ports default to the digi firmware's factory values (8001/8002) so
+  // most people never have to type them — only the IP really changes.
+  $('cfg-local-port').value = s.local_feed_port ?? 8001;
   $('cfg-my-callsign').value = s.messaging_my_callsign || '';
   $('cfg-my-ssid').value = s.messaging_my_ssid ?? '';
   $('cfg-tx-host').value = s.messaging_tx_host || '';
-  $('cfg-tx-port').value = s.messaging_tx_port ?? '';
+  $('cfg-tx-port').value = s.messaging_tx_port ?? 8002;
   $('cfg-aprsis-enabled').checked = s.aprs_is_enabled !== false;
   $('cfg-aprsis-filter').value = s.aprs_is_filter || '';
+
+  // The TX port almost always lives on the same digi as RX — just a
+  // different port — so mirror the IP automatically until the person
+  // types something different into the TX field themselves.
+  txHostAutoFilled = !$('cfg-tx-host').value || $('cfg-tx-host').value === $('cfg-local-host').value;
 }
+
+let txHostAutoFilled = true;
+$('cfg-local-host').addEventListener('input', () => {
+  if (txHostAutoFilled) $('cfg-tx-host').value = $('cfg-local-host').value;
+});
+$('cfg-tx-host').addEventListener('input', () => { txHostAutoFilled = false; });
 
 async function saveSettings() {
   const statusEl = $('settings-status');
