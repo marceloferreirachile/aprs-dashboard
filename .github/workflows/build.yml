@@ -132,14 +132,14 @@ jobs:
                 # quarantine flag fixes it. Ship a double-clickable helper so
                 # the user doesn't need to open Terminal themselves.
                 helper="$dir/Abrir (1a vez).command"
-                cat > "$helper" <<'EOF'
-#!/bin/bash
-# Remove a quarentena do macOS e abre o app.
-# Só precisa rodar isso na primeira vez (builds de teste não assinados).
-cd "$(dirname "$0")"
-xattr -cr "aprs_dashboard.app" 2>/dev/null
-open "aprs_dashboard.app"
-EOF
+                {
+                  printf '%s\n' '#!/bin/bash'
+                  printf '%s\n' '# Remove a quarentena do macOS e abre o app.'
+                  printf '%s\n' '# So precisa rodar isso na primeira vez (builds de teste nao assinados).'
+                  printf '%s\n' 'cd "$(dirname "$0")"'
+                  printf '%s\n' 'xattr -cr "aprs_dashboard.app" 2>/dev/null'
+                  printf '%s\n' 'open "aprs_dashboard.app"'
+                } > "$helper"
                 chmod +x "$helper"
                 extra="Abrir (1a vez).command"
               fi
