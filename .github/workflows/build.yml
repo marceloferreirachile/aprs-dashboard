@@ -123,7 +123,27 @@ jobs:
               # macOS .app bundle: fix the executable bit inside it, then
               # zip the whole bundle recursively so it stays a bundle.
               chmod +x "${{ matrix.build_path }}/Contents/MacOS/"* 2>/dev/null || true
-              (cd "$dir" && zip -r "$OLDPWD/out/${{ matrix.asset_name }}" "$file")
+              extra=""
+              if [ "${{ matrix.os }}" = "macos-latest" ]; then
+                # Ad-hoc-signed (unsigned) builds still get quarantined by the
+                # browser on download, and Apple Silicon's Gatekeeper shows
+                # "app is damaged" for that (not the normal, bypassable
+                # "unidentified developer" prompt) - only removing the
+                # quarantine flag fixes it. Ship a double-clickable helper so
+                # the user doesn't need to open Terminal themselves.
+                helper="$dir/Abrir (1a vez).command"
+                cat > "$helper" <<'EOF'
+#!/bin/bash
+# Remove a quarentena do macOS e abre o app.
+# Só precisa rodar isso na primeira vez (builds de teste não assinados).
+cd "$(dirname "$0")"
+xattr -cr "aprs_dashboard.app" 2>/dev/null
+open "aprs_dashboard.app"
+EOF
+                chmod +x "$helper"
+                extra="Abrir (1a vez).command"
+              fi
+              (cd "$dir" && zip -r "$OLDPWD/out/${{ matrix.asset_name }}" "$file" $extra)
             else
               chmod +x "${{ matrix.build_path }}"
               (cd "$dir" && zip "$OLDPWD/out/${{ matrix.asset_name }}" "$file")

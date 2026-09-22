@@ -68,6 +68,16 @@ internet, put a reverse proxy in front of the local process. This only
 covers the OUTBOUND side (public network) — the local RX/TX side still
 needs to run on the same WiFi network as the digi.
 
+## Where your data lives
+
+`config.yaml` and the SQLite database (your history, rankings, messages)
+are saved in a fixed per-user folder — not inside the app itself — so
+downloading a new version never wipes your history:
+
+- **macOS:** `~/Library/Application Support/APRSDashboard/`
+- **Windows:** `%APPDATA%\APRSDashboard\`
+- **Linux:** `~/.local/share/APRSDashboard/`
+
 ## Project structure
 
 ```

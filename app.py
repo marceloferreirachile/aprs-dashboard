@@ -22,12 +22,30 @@ GITHUB_REPO = "marceloferreirachile/aprs-dashboard"
 
 # BASE_DIR: onde ficam os arquivos empacotados (templates, config.yaml.example)
 # — read-only quando rodando como executável (PyInstaller).
-# DATA_DIR: onde gravamos config.yaml e o banco — precisa ser gravável, então
-# no executável empacotado usamos a pasta AO LADO do .exe/binário, não a
-# pasta temporária somente-leitura onde o PyInstaller extrai tudo.
+# DATA_DIR: onde gravamos config.yaml e o banco — precisa ser gravável E
+# sobreviver a atualizações (baixar um app novo não pode apagar o histórico).
+#
+# No Windows/Linux o executável é um arquivo solto, então "do lado dele"
+# funciona. No macOS, porém, o executável fica DENTRO do bundle .app
+# (Contents/MacOS/...) — gravar dados ali significa que cada novo download
+# vem com um .app diferente e o histórico do antigo fica preso lá dentro,
+# perdido. Por isso usamos a pasta padrão de dados de app de cada sistema
+# (a mesma ideia em todos: um lugar fixo, fora do próprio executável).
+def _default_data_dir():
+    if sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    elif sys.platform == "win32":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~\\AppData\\Roaming")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    path = os.path.join(base, "APRSDashboard")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if getattr(sys, "frozen", False):
-    DATA_DIR = os.path.dirname(sys.executable)
+    DATA_DIR = _default_data_dir()
 else:
     DATA_DIR = BASE_DIR
 CONFIG_PATH = os.path.join(DATA_DIR, "config.yaml")
