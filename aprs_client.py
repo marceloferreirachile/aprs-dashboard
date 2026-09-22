@@ -48,11 +48,35 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return EARTH_RADIUS_KM * 2 * atan2(sqrt(a), sqrt(1 - a))
 
 
+
+# q-constructs que realmente significam "um iGate de verdade gateou isso do
+# RF pra internet" (qAR = client verificado, qAo = terceiro formato). qAC
+# ("login direto no servidor") e variantes de servidor NÃO confirmam que
+# alguém ouviu por rádio — é comum aparecer até no próprio uplink do digi.
+_REAL_GATE_QCONSTRUCTS = {"QAR", "QAO"}
+
+# Nomes que aparecem no caminho mas são infraestrutura da rede (servidores
+# Tier-2, roteamento interno), não estações de rádio de verdade.
+_INFRA_PREFIXES = ("TCPIP", "TCPXX", "APRS", "GATE", "SERVER", "NOCALL", "N0CALL", "T2", "3RD")
+
+
+def looks_like_real_station(call: str) -> bool:
+    call = (call or "").split("-")[0].upper().strip()
+    if not call or len(call) < 3:
+        return False
+    return not any(call.startswith(p) for p in _INFRA_PREFIXES)
+
+
 def extract_gate(path_list):
-    """Acha o callsign do iGate que colocou o pacote na internet (após o q-construct)."""
+    """Acha o callsign do iGate que colocou o pacote na internet (após o
+    q-construct) — só quando o q-construct indica um gate de verdade."""
     for i, hop in enumerate(path_list):
-        if hop.upper().startswith("QA") and i + 1 < len(path_list):
-            return path_list[i + 1].split("*")[0].upper()
+        h = hop.upper()
+        if h.startswith("QA") and i + 1 < len(path_list):
+            if h not in _REAL_GATE_QCONSTRUCTS:
+                return None
+            gate = path_list[i + 1].split("*")[0].upper()
+            return gate if looks_like_real_station(gate) else None
     return None
 
 
@@ -413,15 +437,28 @@ class AprsFeeds:
             station = src
             via = classify_via(path_list)
             pos = (lat, lon) if lat is not None else db.get_position(station)
-        else:  # outbound: procuramos o beacon do PRÓPRIO digi visto por outro iGate
-            if src != self.digi_call:
-                return
-            gate = extract_gate(path_list)
-            if not gate or gate == self.digi_call:
-                return
-            station = gate
-            via = "rede (APRS-IS)"
-            pos = db.get_position(gate)
+        else:  # outbound: tudo que chega pela rede pública (APRS-IS)
+            if src == self.digi_call:
+                # o PRÓPRIO digi visto por outro iGate — confirma até onde o
+                # sinal dele chegou. Isso é o que alimenta o ranking DX.
+                gate = extract_gate(path_list)
+                if not gate or gate == self.digi_call:
+                    return
+                station = gate
+                via = "rede (confirma alcance)"
+                pos = db.get_position(gate)
+            else:
+                # tráfego regional: outras estações vistas na rede, sem
+                # relação com o seu digi. Só aparece se o filtro do APRS-IS
+                # estiver aberto além do seu indicativo (raio configurado em
+                # Configurações). Entra no "Últimas estações escutadas" pra
+                # dar volume de teste, mas NÃO conta pro ranking DX — aquele
+                # continua sendo só "quem ouviu meu digi de verdade".
+                if not looks_like_real_station(src):
+                    return  # servidor/infra da rede, não é uma estação de verdade
+                station = src
+                via = "rede (regional)"
+                pos = (lat, lon) if lat is not None else db.get_position(src)
 
         distance = None
         plat = plon = None

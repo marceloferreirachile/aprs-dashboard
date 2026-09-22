@@ -187,11 +187,15 @@ def timeseries(direction=None, days=30):
 
 
 def most_heard(direction=None, limit=20):
-    q = "SELECT station, COUNT(*) c, MAX(ts) last FROM sightings"
+    q = "SELECT station, COUNT(*) c, MAX(ts) last FROM sightings WHERE 1=1"
     params = []
     if direction:
-        q += " WHERE direction = ?"
+        q += " AND direction = ?"
         params.append(direction)
+        # No sentido "outbound", tráfego regional (não é sobre o seu digi)
+        # não deve poluir esse ranking — só quem de fato ouviu seu digi.
+        if direction == "outbound":
+            q += " AND (via IS NULL OR via != 'rede (regional)')"
     q += " GROUP BY station ORDER BY c DESC LIMIT ?"
     params.append(limit)
     with cursor() as cur:
@@ -209,6 +213,8 @@ def dx_ranking(direction=None, limit=20):
     if direction:
         q += " AND direction = ?"
         params.append(direction)
+        if direction == "outbound":
+            q += " AND (via IS NULL OR via != 'rede (regional)')"
     q += " GROUP BY station ORDER BY best_km DESC LIMIT ?"
     params.append(limit)
     with cursor() as cur:

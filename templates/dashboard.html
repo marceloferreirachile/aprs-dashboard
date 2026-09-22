@@ -51,6 +51,7 @@
   }
   th { background: var(--panel2); }
   .panel p.hint { color: var(--muted); font-size: 13px; margin-top: -6px; }
+  .field .hint { display: block; color: var(--muted); margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
@@ -337,6 +338,7 @@
           <div class="field">
             <label data-i18n="settings_my_ssid">SSID</label>
             <input id="cfg-my-ssid" type="number" placeholder="7">
+            <span class="hint" data-i18n="settings_ssid_hint" style="font-size:11px;">O número depois do traço no indicativo (ex: o "10" em LU6JMF-10) — identifica o equipamento, nada a ver com WiFi.</span>
           </div>
 
           <div class="section-title" data-i18n="settings_section_outbound">Rede pública (APRS-IS)</div>
@@ -344,7 +346,11 @@
             <input id="cfg-aprsis-enabled" type="checkbox">
             <label data-i18n="settings_outbound_enabled" style="margin-bottom:0">Ativar captura outbound</label>
           </div>
-          <div class="field"></div>
+          <div class="field">
+            <label data-i18n="settings_aprsis_radius">Server Filter (raio, km)</label>
+            <input id="cfg-aprsis-radius" type="number" min="1" placeholder="20">
+            <span class="hint" data-i18n="settings_aprsis_radius_hint" style="font-size:11px;">Igual ao Server Filter da aba IGATE do digi, mas é a conexão do dashboard com a rede — independente da dele. Padrão: 20km.</span>
+          </div>
         </div>
       </details>
 
@@ -407,7 +413,7 @@ const TRANSLATIONS = {
     messages_send_title: "Mandar mensagem APRS", messages_to_ph: "Indicativo destino (ex: LU5JB-9)",
     messages_text_ph: "Texto da mensagem", btn_send: "Enviar", messages_sent_title: "Mensagens enviadas",
     settings_title: "Configurações do seu digi",
-    settings_hint: "Cada pessoa usa um equipamento diferente — preencha o IP e as portas do SEU digipeater na sua rede local. Nada aqui é compartilhado, fica só no seu computador.",
+    settings_hint: "Cada pessoa usa um equipamento diferente — preencha o indicativo e o IP do SEU digipeater na sua rede local (as portas já vêm prontas). Nada aqui é compartilhado, fica só no seu computador.",
     settings_section_digi: "Seu digipeater", settings_callsign: "Indicativo do digi",
     settings_lat: "Latitude", settings_lon: "Longitude",
     settings_rx_host: "IP do digi (rede local)", settings_rx_port: "Porta TCP KISS (RX)",
@@ -435,6 +441,9 @@ const TRANSLATIONS = {
     btn_check_updates: "Verificar atualizações", txt_checking_updates: "Verificando no GitHub...",
     txt_up_to_date: "Você já está na versão mais recente.", txt_update_available: "Nova versão disponível:",
     btn_download_update: "Baixar atualização",
+    settings_ssid_hint: "O número depois do traço no indicativo (ex: o \"10\" em LU6JMF-10) — identifica o equipamento, nada a ver com WiFi.",
+    settings_aprsis_radius: "Server Filter (raio, km)",
+    settings_aprsis_radius_hint: "Igual ao Server Filter da aba IGATE do digi, mas é a conexão do dashboard com a rede — independente da dele. Padrão: 20km.",
   },
   es: {
     app_title: "APRS Digipeater Dashboard",
@@ -483,10 +492,13 @@ const TRANSLATIONS = {
     txt_locating: "Obteniendo ubicación...", txt_located: "¡Ubicación obtenida! Revisa y ajusta si hace falta.",
     txt_locate_fail: "No pude obtener tu ubicación. Completa manualmente.",
     settings_advanced: "Configuración avanzada (puertos, filtro)",
-    nav_about: "Acerca de", about_version_title: "Versión instalada",
+    nav_about: "Sobre", about_version_title: "Versión instalada",
     btn_check_updates: "Buscar actualizaciones", txt_checking_updates: "Buscando en GitHub...",
     txt_up_to_date: "Ya tenés la última versión.", txt_update_available: "Nueva versión disponible:",
     btn_download_update: "Descargar actualización",
+    settings_ssid_hint: "El número después del guion en el indicativo (ej: el \"10\" en LU6JMF-10) — identifica el equipo, nada que ver con WiFi.",
+    settings_aprsis_radius: "Server Filter (radio, km)",
+    settings_aprsis_radius_hint: "Igual al Server Filter de la pestaña IGATE del digi, pero es la conexión del dashboard con la red — independiente de la de él. Por defecto: 20km.",
   },
   en: {
     app_title: "APRS Digipeater Dashboard",
@@ -539,6 +551,9 @@ const TRANSLATIONS = {
     btn_check_updates: "Check for updates", txt_checking_updates: "Checking GitHub...",
     txt_up_to_date: "You're already on the latest version.", txt_update_available: "New version available:",
     btn_download_update: "Download update",
+    settings_ssid_hint: "The number after the dash in the callsign (e.g. the \"10\" in LU6JMF-10) — identifies the device, nothing to do with WiFi.",
+    settings_aprsis_radius: "Server Filter (radius, km)",
+    settings_aprsis_radius_hint: "Same idea as the Server Filter on the digi's IGATE tab, but this is the dashboard's own connection to the network — independent of the digi's. Default: 20km.",
   },
 };
 
@@ -814,15 +829,32 @@ async function loadSettings() {
   $('cfg-my-ssid').value = s.messaging_my_ssid ?? '';
   $('cfg-tx-port').value = s.messaging_tx_port ?? 8002;
   $('cfg-aprsis-enabled').checked = s.aprs_is_enabled !== false;
+  $('cfg-aprsis-radius').value = s.aprs_is_radius_km ?? 20;
 
   // "Seu indicativo" quase sempre é o mesmo do digi (é você quem opera os
   // dois) — preenche sozinho até a pessoa digitar algo diferente.
   myCallAutoFilled = !$('cfg-my-callsign').value || $('cfg-my-callsign').value === $('cfg-callsign').value;
 }
 
+// Separa "BASE-SSID" (ex: "LU6JMF-10") em indicativo base + número de SSID —
+// o SSID é o número depois do traço (identifica qual equipamento é, não tem
+// nada a ver com rede WiFi), e o backend guarda os dois campos separados.
+function splitCallSsid(raw) {
+  raw = (raw || '').trim().toUpperCase();
+  if (raw.includes('-')) {
+    const [base, ssidPart] = raw.split('-');
+    const ssid = parseInt(ssidPart, 10);
+    return { base, ssid: isNaN(ssid) ? 0 : ssid };
+  }
+  return { base: raw, ssid: null };
+}
+
 let myCallAutoFilled = true;
 $('cfg-callsign').addEventListener('input', () => {
-  if (myCallAutoFilled) $('cfg-my-callsign').value = $('cfg-callsign').value;
+  if (!myCallAutoFilled) return;
+  const { base, ssid } = splitCallSsid($('cfg-callsign').value);
+  $('cfg-my-callsign').value = base;
+  if (ssid !== null) $('cfg-my-ssid').value = ssid;
 });
 $('cfg-my-callsign').addEventListener('input', () => { myCallAutoFilled = false; });
 
@@ -831,6 +863,10 @@ async function saveSettings() {
   $('settings-save-btn').disabled = true;
   statusEl.textContent = t('txt_saving');
   const host = $('cfg-local-host').value.trim();
+  // Se a pessoa digitou o SSID junto do indicativo (ex: "LU6JMF-10") em vez
+  // de usar o campo separado, isso extrai o número em vez de simplesmente
+  // ignorá-lo — evitava mandar mensagem com SSID errado (sempre 0).
+  const myCall = splitCallSsid($('cfg-my-callsign').value);
   const payload = {
     digi_callsign: $('cfg-callsign').value.trim(),
     digi_lat: $('cfg-lat').value ? parseFloat($('cfg-lat').value) : 0,
@@ -841,12 +877,13 @@ async function saveSettings() {
     local_feed_enabled: true,
     local_feed_host: host,
     local_feed_port: $('cfg-local-port').value || null,
-    messaging_my_callsign: $('cfg-my-callsign').value.trim(),
-    messaging_my_ssid: $('cfg-my-ssid').value || 0,
+    messaging_my_callsign: myCall.base,
+    messaging_my_ssid: myCall.ssid !== null ? myCall.ssid : ($('cfg-my-ssid').value || 0),
     // TX usa o mesmo IP do digi que o RX — um único campo de IP na tela.
     messaging_tx_host: host,
     messaging_tx_port: $('cfg-tx-port').value || null,
     aprs_is_enabled: $('cfg-aprsis-enabled').checked,
+    aprs_is_radius_km: $('cfg-aprsis-radius').value || 20,
     aprs_is_filter: '',
   };
   try {

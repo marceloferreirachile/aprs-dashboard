@@ -105,6 +105,7 @@ def _settings_view(cfg):
         "local_feed_port": lf.get("port"),
         "aprs_is_enabled": bool(ai.get("enabled", True)),
         "aprs_is_filter": ai.get("filter", "") or "",
+        "aprs_is_radius_km": ai.get("radius_km", 20),
         "messaging_my_callsign": msg.get("my_callsign", "") or "",
         "messaging_my_ssid": msg.get("my_ssid", 0),
         "messaging_tx_host": tx.get("host", "") or "",
@@ -177,11 +178,27 @@ def api_save_settings(payload: dict = Body(...)):
         "port": local_port,
     }
     digi_call = new_config["digi"]["callsign"]
-    aprs_filter = s("aprs_is_filter") or (f"b/{digi_call}*" if digi_call else "")
+    digi_lat = new_config["digi"]["lat"]
+    digi_lon = new_config["digi"]["lon"]
+    try:
+        radius_km = int(payload.get("aprs_is_radius_km") or 20)
+    except (TypeError, ValueError):
+        radius_km = 20
+    # b/CALL* sempre garante ver a confirmação de alcance do próprio digi
+    # (usada no ranking DX). r/lat/lon/raio, somado com um espaço, é "OU" no
+    # protocolo APRS-IS — soma tráfego regional de outras estações também,
+    # só quando já temos a posição do digi (senão não tem centro pro raio).
+    # Equivalente ao "Server Filter" da aba IGATE do próprio digi, só que
+    # essa é a conexão do DASHBOARD com a rede — independente da dele.
+    default_filter = f"b/{digi_call}*" if digi_call else ""
+    if digi_lat and digi_lon:
+        default_filter = (default_filter + f" r/{digi_lat}/{digi_lon}/{radius_km}").strip()
+    aprs_filter = s("aprs_is_filter") or default_filter
     new_config["aprs_is"] = {
         **config.get("aprs_is", {}),
         "enabled": bool(payload.get("aprs_is_enabled", True)),
         "filter": aprs_filter,
+        "radius_km": radius_km,
     }
     tx_host = s("messaging_tx_host")
     tx_port = port_or_none(payload.get("messaging_tx_port"))
