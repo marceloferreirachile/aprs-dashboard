@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,7 +25,8 @@
   }
   .os-card:hover { border-color: var(--accent); transform: translateY(-3px); }
   .os-card.recommended { border-color: var(--accent2); }
-  .os-card .icon { font-size: 42px; margin-bottom: 10px; }
+  .os-card .icon { margin-bottom: 12px; display: flex; justify-content: center; align-items: center; height: 46px; }
+  .os-card .icon svg { width: 42px; height: 42px; }
   .os-card .os-name { font-weight: 700; font-size: 16px; }
   .os-card .os-tag { color: var(--accent2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
   .os-card .os-hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
@@ -47,39 +48,45 @@
 <body>
 
 <h1>APRS Digipeater Dashboard</h1>
-<p class="subtitle">Histórico completo, gráficos, rankings DX e mensagens pro seu digipeater APRS. Escolha o seu sistema e baixe — não precisa instalar Python nem nada extra.</p>
+<p class="subtitle">Full history, charts, DX rankings, and messaging for your APRS digipeater. Pick your operating system and download — no Python or anything else to install.</p>
 
 <div class="cards" id="os-cards">
   <a class="os-card" id="card-windows" href="https://github.com/marceloferreirachile/aprs-dashboard/releases/latest/download/aprs_dashboard-windows.exe">
-    <div class="icon">🪟</div>
+    <div class="icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#4fa3ff" d="M0 3.5L9.75 2.2v9.3H0V3.5zm10.75-1.4L24 0v11.5H10.75V2.1zM0 12.5h9.75V21.8L0 20.5V12.5zm10.75 0H24V24l-13.15-1.85-.1-9.65z"/></svg>
+    </div>
     <div class="os-name">Windows</div>
-    <div class="os-hint">.exe — duplo clique pra abrir</div>
+    <div class="os-hint">.exe — double-click to open</div>
   </a>
   <a class="os-card" id="card-macos" href="https://github.com/marceloferreirachile/aprs-dashboard/releases/latest/download/aprs_dashboard-macos">
-    <div class="icon">🍎</div>
+    <div class="icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e8ecf4" d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-3.014 1.57-.12 0-.23-.02-.3-.03-.015-.06-.045-.226-.045-.394 0-1.14.572-2.27 1.206-2.98.804-.94 2.14-1.64 3.24-1.68.015.13.03.28.09.43zm4.565 15.65c-.03.1-.5 1.71-1.65 3.38-1 1.44-2.04 2.88-3.67 2.91-1.6.03-2.12-.95-3.95-.95-1.83 0-2.4.92-3.92.98-1.58.06-2.79-1.56-3.79-3-2.06-2.94-3.64-8.31-1.52-11.93 1.05-1.8 2.93-2.94 4.97-2.97 1.55-.03 3.01 1.04 3.95 1.04.94 0 2.71-1.29 4.57-1.1.78.03 2.97.31 4.38 2.38-.11.07-2.61 1.53-2.58 4.55.03 3.6 3.16 4.8 3.2 4.81z"/></svg>
+    </div>
     <div class="os-name">macOS</div>
-    <div class="os-hint">Intel e Apple Silicon</div>
+    <div class="os-hint">Intel and Apple Silicon</div>
   </a>
   <a class="os-card" id="card-linux" href="https://github.com/marceloferreirachile/aprs-dashboard/releases/latest/download/aprs_dashboard-linux">
-    <div class="icon">🐧</div>
+    <div class="icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#e8ecf4" d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.052-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 0 0-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.99.278-.647.278-1.19.033-1.6.32-.13.67-.22.958-.33.365-.14.73-.24.935-.6.19-.36.19-.75-.02-1.14-.3-.6-.98-.98-1.75-1.35-.74-.35-1.6-.67-2.24-1.14-.8-.6-1.32-1.4-1.6-2.34-.11-.36-.18-.73-.21-1.08a.24.24 0 0 0 0-.05c.07-.5.24-.98.5-1.41.35-.55.87-.99 1.44-1.24.05-.02.1-.03.15-.05.13.72.32 1.42.6 2.06.35.8.86 1.5 1.5 2.05.32.28.68.5 1.07.66.19.08.4.14.6.18.2.04.4.06.6.06.4 0 .78-.09 1.13-.26.7-.35 1.24-.98 1.5-1.75.13-.38.2-.79.2-1.2 0-.42-.08-.85-.24-1.25-.15-.4-.38-.76-.68-1.05-.6-.6-1.44-.94-2.32-.94-.5 0-1 .12-1.44.35-.09-.4-.22-.79-.4-1.15-.36-.72-.9-1.32-1.57-1.72a2.9 2.9 0 0 0-1.5-.41z"/></svg>
+    </div>
     <div class="os-name">Linux</div>
-    <div class="os-hint">binário genérico x86_64</div>
+    <div class="os-hint">generic x86_64 binary</div>
   </a>
 </div>
 
 <div class="steps">
-  <h2>Como usar depois de baixar</h2>
+  <h2>How to use after downloading</h2>
   <ol>
-    <li>Baixe o arquivo do seu sistema acima.</li>
-    <li><strong>Windows:</strong> se aparecer aviso do SmartScreen, clique em "Mais informações" → "Executar assim mesmo" (é normal pra executáveis sem certificado pago). <strong>macOS:</strong> clique com o botão direito no arquivo → Abrir (na primeira vez, pra passar do Gatekeeper). <strong>Linux:</strong> <code>chmod +x aprs_dashboard-linux</code> e depois <code>./aprs_dashboard-linux</code>.</li>
-    <li>O programa abre uma janela de terminal (deixe aberta — é o servidor rodando) e o navegador abre sozinho em <code>http://localhost:8080</code>.</li>
-    <li>Na aba <strong>Configurações</strong> do dashboard, preencha o IP e as portas do SEU digipeater na sua rede local.</li>
+    <li>Download the file for your system above.</li>
+    <li><strong>Windows:</strong> if a SmartScreen warning appears, click "More info" → "Run anyway" (normal for executables without a paid certificate). <strong>macOS:</strong> right-click the file → Open (first time only, to get past Gatekeeper). <strong>Linux:</strong> <code>chmod +x aprs_dashboard-linux</code> then <code>./aprs_dashboard-linux</code>.</li>
+    <li>The program opens a terminal window (leave it open — that's the server running) and your browser opens automatically at <code>http://localhost:8080</code>.</li>
+    <li>In the dashboard's <strong>Settings</strong> tab, fill in the IP address and ports of YOUR digipeater on your local network.</li>
   </ol>
 </div>
 
 <p class="note">
-  Código aberto sob <strong>GPLv3</strong> — qualquer modificação distribuída precisa continuar aberta.
-  Veja o código-fonte e relate problemas no
+  Open source under <strong>GPLv3</strong> — any distributed modification must remain open.
+  See the source code and report issues on
   <a class="text-link" href="https://github.com/marceloferreirachile/aprs-dashboard" target="_blank" rel="noopener">GitHub</a>.
 </p>
 
@@ -96,7 +103,7 @@
 </div>
 
 <script>
-  // Destaca o card do sistema operacional detectado, igual um instalador de verdade.
+  // Highlights the detected OS card, like a real installer would.
   const ua = navigator.userAgent;
   let osId = null;
   if (/Windows/i.test(ua)) osId = 'windows';
@@ -108,7 +115,7 @@
       card.classList.add('recommended');
       const tag = document.createElement('div');
       tag.className = 'os-tag';
-      tag.textContent = 'Recomendado pra você';
+      tag.textContent = 'Recommended for you';
       card.insertBefore(tag, card.querySelector('.os-hint'));
     }
   }
