@@ -81,6 +81,7 @@ jobs:
 
       - name: Notarize app (App Store Connect API key, reused from ftapp)
         if: matrix.os == 'macos-latest' && (startsWith(github.ref, 'refs/tags/') || github.event.inputs.sign == 'true')
+        timeout-minutes: 15
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
