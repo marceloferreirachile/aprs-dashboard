@@ -1,0 +1,5 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+aprslib>=0.7.2
+PyYAML>=6.0
+jinja2>=3.1

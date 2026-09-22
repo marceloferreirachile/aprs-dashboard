@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APRS Dashboard — __DIGI_CALLSIGN__</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #161d2e; --panel2: #1d2740; --border: #2a3550;
+    --text: #e8ecf4; --muted: #8b96ad; --accent: #4fa3ff; --accent2: #34d1a1;
+    --warn: #ffb454; --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  header .right { display: flex; align-items: center; gap: 14px; }
+  .lang-switch { display: flex; gap: 4px; }
+  .lang-switch button {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px 8px; cursor: pointer; font-size: 18px; line-height: 1; opacity: .55;
+  }
+  .lang-switch button.active { opacity: 1; border-color: var(--accent); background: rgba(79,163,255,.12); }
+  nav { display: flex; gap: 4px; padding: 10px 24px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav button {
+    background: transparent; border: none; color: var(--muted); padding: 8px 14px;
+    border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  nav button.active { background: var(--accent); color: #06111f; font-weight: 600; }
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; margin-bottom: 20px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card .num { font-size: 26px; font-weight: 700; }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+  .panel h2 { margin-top: 0; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .panel p.hint { color: var(--muted); font-size: 13px; margin-top: -6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge.inbound { background: rgba(79,163,255,.15); color: var(--accent); }
+  .badge.outbound { background: rgba(52,209,161,.15); color: var(--accent2); }
+  .badge.direto { background: rgba(52,209,161,.15); color: var(--accent2); }
+  .badge.repetido { background: rgba(255,180,84,.15); color: var(--warn); }
+  .badge.rede { background: rgba(139,150,173,.2); color: var(--muted); }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  input, select, textarea {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 10px; border-radius: 8px; font-size: 14px; font-family: inherit;
+  }
+  button.action {
+    background: var(--accent); border: none; color: #06111f; padding: 8px 16px;
+    border-radius: 8px; font-weight: 600; cursor: pointer;
+  }
+  button.action:disabled { opacity: .5; cursor: not-allowed; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+  canvas { max-height: 320px; }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
+  .station-links { display: inline-flex; gap: 6px; align-items: center; }
+  .station-links a { color: var(--muted); text-decoration: none; font-size: 11px; border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+  .station-links a:hover { color: var(--accent); border-color: var(--accent); }
+  .msg-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+  .msg-form input { min-width: 140px; }
+  .msg-form textarea { flex: 1; min-width: 220px; min-height: 38px; resize: vertical; }
+  .char-count { font-size: 12px; color: var(--muted); }
+  .char-count.over { color: var(--danger); }
+  .status-ok { color: var(--accent2); }
+  .status-pending { color: var(--warn); }
+  footer { padding: 24px; }
+  .about-box { max-width: 480px; margin: 0 auto; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; font-size: 13px; }
+  .about-box .about-title { background: var(--accent); color: #06111f; text-align: center; font-weight: 700; padding: 8px; }
+  .about-box table { width: 100%; border-collapse: collapse; }
+  .about-box td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .about-box td:first-child { color: var(--muted); font-weight: 600; width: 90px; }
+  .about-box tr:last-child td { border-bottom: none; }
+  .about-box a { color: var(--accent); text-decoration: none; }
+  .about-box a:hover { text-decoration: underline; }
+  .settings-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+  @media (max-width: 700px) { .settings-form { grid-template-columns: 1fr; } }
+  .settings-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .settings-form .field input { width: 100%; }
+  .settings-form .field.checkbox { display: flex; align-items: center; gap: 8px; }
+  .settings-form .field.checkbox input { width: auto; }
+  .settings-form .section-title { grid-column: 1 / -1; margin: 10px 0 -4px; color: var(--accent); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 data-i18n="app_title">APRS Digipeater Dashboard</h1>
+    <div class="sub" id="digi-info">__DIGI_CALLSIGN__</div>
+  </div>
+  <div class="right">
+    <div class="sub" id="last-update">—</div>
+    <div class="lang-switch">
+      <button data-lang="pt" title="Português">🇧🇷</button>
+      <button data-lang="es" title="Español (Latinoamérica)">🇲🇽</button>
+      <button data-lang="en" title="English (US)">🇺🇸</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <button data-tab="overview" class="active" data-i18n="nav_overview">Visão geral</button>
+  <button data-tab="rankings" data-i18n="nav_rankings">Rankings</button>
+  <button data-tab="search" data-i18n="nav_search">Pesquisa</button>
+  <button data-tab="history" data-i18n="nav_history">Histórico por data</button>
+  <button data-tab="messages" data-i18n="nav_messages">Mensagens</button>
+  <button data-tab="settings" data-i18n="nav_settings">Configurações</button>
+</nav>
+
+<main>
+
+  <section id="tab-overview" class="tab active">
+    <div class="cards" id="summary-cards"></div>
+    <div class="panel">
+      <h2 data-i18n="overview_chart_title">Pacotes por dia (últimos 30 dias)</h2>
+      <canvas id="chart-timeseries"></canvas>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h2 data-i18n="overview_top5_inbound">Top 5 mais escutadas — Inbound</h2>
+        <table><tbody id="top-inbound"></tbody></table>
+      </div>
+      <div class="panel">
+        <h2 data-i18n="overview_top5_outbound">Top 5 mais escutadas — Outbound</h2>
+        <table><tbody id="top-outbound"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-rankings" class="tab">
+    <div class="two-col">
+      <div class="panel">
+        <h2 data-i18n="rankings_dx_outbound">Ranking DX — Outbound (quem ouviu o digi)</h2>
+        <table>
+          <thead><tr>
+            <th>#</th><th data-i18n="th_station">Estação</th><th data-i18n="th_distance">Distância</th>
+            <th data-i18n="th_packets">Pacotes</th><th data-i18n="th_since">Desde</th>
+          </tr></thead>
+          <tbody id="dx-outbound"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2 data-i18n="rankings_dx_inbound">Ranking DX — Inbound (quem o digi ouviu)</h2>
+        <table>
+          <thead><tr>
+            <th>#</th><th data-i18n="th_station">Estação</th><th data-i18n="th_distance">Distância</th>
+            <th data-i18n="th_packets">Pacotes</th><th data-i18n="th_since">Desde</th>
+          </tr></thead>
+          <tbody id="dx-inbound"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <h2 data-i18n="rankings_most_outbound">Mais escutadas — Outbound (todas)</h2>
+        <table>
+          <thead><tr>
+            <th>#</th><th data-i18n="th_station">Estação</th><th data-i18n="th_packets">Pacotes</th><th data-i18n="th_last_seen">Última vez</th>
+          </tr></thead>
+          <tbody id="most-outbound"></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2 data-i18n="rankings_most_inbound">Mais escutadas — Inbound (todas)</h2>
+        <table>
+          <thead><tr>
+            <th>#</th><th data-i18n="th_station">Estação</th><th data-i18n="th_packets">Pacotes</th><th data-i18n="th_last_seen">Última vez</th>
+          </tr></thead>
+          <tbody id="most-inbound"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-search" class="tab">
+    <div class="panel">
+      <h2 data-i18n="search_title">Pesquisa</h2>
+      <div class="controls">
+        <input id="s-q" data-i18n-ph="search_callsign_ph" placeholder="Indicativo (ex: LU5JB)">
+        <select id="s-dir">
+          <option value="" data-i18n="opt_both_directions">Ambos sentidos</option>
+          <option value="inbound">Inbound</option>
+          <option value="outbound">Outbound</option>
+        </select>
+        <select id="s-via">
+          <option value="" data-i18n="opt_via_all">Direto/repetido/rede (todos)</option>
+          <option value="direto" data-i18n="opt_via_direto">Direto</option>
+          <option value="repetido" data-i18n="opt_via_repetido">Repetido (via digipeater)</option>
+          <option value="rede (APRS-IS)" data-i18n="opt_via_rede">Rede (APRS-IS)</option>
+        </select>
+        <input id="s-from" type="date">
+        <input id="s-to" type="date">
+        <button class="action" onclick="runSearch()" data-i18n="btn_search">Buscar</button>
+      </div>
+      <table>
+        <thead><tr>
+          <th data-i18n="th_when">Quando</th><th data-i18n="th_direction">Sentido</th><th data-i18n="th_station">Estação</th>
+          <th data-i18n="th_distance">Distância</th><th data-i18n="th_via">Via</th><th data-i18n="th_path">Caminho</th>
+        </tr></thead>
+        <tbody id="search-results"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-history" class="tab">
+    <div class="panel">
+      <h2 data-i18n="history_title">Histórico por data</h2>
+      <div class="controls">
+        <select id="h-date"></select>
+      </div>
+      <table>
+        <thead><tr>
+          <th data-i18n="th_time">Hora</th><th data-i18n="th_direction">Sentido</th><th data-i18n="th_station">Estação</th>
+          <th data-i18n="th_distance">Distância</th><th data-i18n="th_via">Via</th><th data-i18n="th_path">Caminho</th>
+        </tr></thead>
+        <tbody id="history-results"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-messages" class="tab">
+    <div class="panel">
+      <h2 data-i18n="messages_send_title">Mandar mensagem APRS</h2>
+      <div class="msg-form">
+        <input id="m-to" data-i18n-ph="messages_to_ph" placeholder="Indicativo destino (ex: LU5JB-9)">
+        <textarea id="m-text" data-i18n-ph="messages_text_ph" placeholder="Texto da mensagem" maxlength="67" oninput="updateCharCount()"></textarea>
+        <button class="action" id="m-send-btn" onclick="sendMessage()" data-i18n="btn_send">Enviar</button>
+      </div>
+      <div class="char-count" id="m-char-count">0 / 60</div>
+      <div id="m-status" style="margin-top:8px; font-size:13px;"></div>
+    </div>
+    <div class="panel">
+      <h2 data-i18n="messages_sent_title">Mensagens enviadas</h2>
+      <table>
+        <thead><tr>
+          <th data-i18n="th_when">Quando</th><th data-i18n="th_from">De</th><th data-i18n="th_to">Para</th>
+          <th data-i18n="th_text">Texto</th><th data-i18n="th_status">Status</th>
+        </tr></thead>
+        <tbody id="messages-list"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-settings" class="tab">
+    <div class="panel">
+      <h2 data-i18n="settings_title">Configurações do seu digi</h2>
+      <p class="hint" data-i18n="settings_hint">Cada pessoa usa um equipamento diferente — preencha o IP e as portas do SEU digipeater na sua rede local. Nada aqui é compartilhado, fica só no seu computador.</p>
+      <div class="settings-form">
+        <div class="section-title" data-i18n="settings_section_digi">Seu digipeater</div>
+        <div class="field">
+          <label data-i18n="settings_callsign">Indicativo do digi</label>
+          <input id="cfg-callsign" placeholder="PY2ABC-10">
+        </div>
+        <div class="field"></div>
+        <div class="field">
+          <label data-i18n="settings_lat">Latitude</label>
+          <input id="cfg-lat" type="number" step="0.0001" placeholder="-32.4825">
+        </div>
+        <div class="field">
+          <label data-i18n="settings_lon">Longitude</label>
+          <input id="cfg-lon" type="number" step="0.0001" placeholder="-58.2372">
+        </div>
+
+        <div class="section-title" data-i18n="settings_section_rx">RX local (quem o digi ouviu)</div>
+        <div class="field checkbox">
+          <input id="cfg-local-enabled" type="checkbox">
+          <label data-i18n="settings_rx_enabled" style="margin-bottom:0">Ativar captura local (RX)</label>
+        </div>
+        <div class="field"></div>
+        <div class="field">
+          <label data-i18n="settings_rx_host">IP do digi (rede local)</label>
+          <input id="cfg-local-host" placeholder="192.168.x.x">
+        </div>
+        <div class="field">
+          <label data-i18n="settings_rx_port">Porta TCP KISS (RX)</label>
+          <input id="cfg-local-port" type="number" placeholder="8001">
+        </div>
+
+        <div class="section-title" data-i18n="settings_section_tx">TX (envio de mensagens)</div>
+        <div class="field">
+          <label data-i18n="settings_my_callsign">Seu indicativo (remetente)</label>
+          <input id="cfg-my-callsign" placeholder="PY2ABC">
+        </div>
+        <div class="field">
+          <label data-i18n="settings_my_ssid">SSID</label>
+          <input id="cfg-my-ssid" type="number" placeholder="7">
+        </div>
+        <div class="field">
+          <label data-i18n="settings_tx_host">IP do digi (porta de TX)</label>
+          <input id="cfg-tx-host" placeholder="192.168.x.x">
+        </div>
+        <div class="field">
+          <label data-i18n="settings_tx_port">Porta TCP KISS (TX)</label>
+          <input id="cfg-tx-port" type="number" placeholder="8002">
+        </div>
+
+        <div class="section-title" data-i18n="settings_section_outbound">Outbound (rede pública APRS-IS)</div>
+        <div class="field checkbox">
+          <input id="cfg-aprsis-enabled" type="checkbox">
+          <label data-i18n="settings_outbound_enabled" style="margin-bottom:0">Ativar captura outbound</label>
+        </div>
+        <div class="field"></div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label data-i18n="settings_aprsis_filter">Filtro APRS-IS (deixe em branco pra gerar automático a partir do seu indicativo)</label>
+          <input id="cfg-aprsis-filter" placeholder="b/PY2ABC-10*">
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="action" id="settings-save-btn" onclick="saveSettings()" data-i18n="btn_save">Salvar</button>
+        <span id="settings-status" style="margin-left:10px; font-size:13px;"></span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="about-box">
+    <div class="about-title">Developer/Support Information</div>
+    <table>
+      <tr><td>Author:</td><td>Marcelo Ferreira</td></tr>
+      <tr><td>Callsign:</td><td>LU6JMF-10</td></tr>
+      <tr><td>Country:</td><td>Concepcion del Uruguay, Entre Rios, Argentina</td></tr>
+      <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
+      <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
+      <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
+    </table>
+  </div>
+</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------------
+// i18n
+// ---------------------------------------------------------------------
+const TRANSLATIONS = {
+  pt: {
+    app_title: "APRS Digipeater Dashboard",
+    nav_overview: "Visão geral", nav_rankings: "Rankings", nav_search: "Pesquisa",
+    nav_history: "Histórico por data", nav_messages: "Mensagens", nav_settings: "Configurações",
+    overview_chart_title: "Pacotes por dia (últimos 30 dias)",
+    overview_top5_inbound: "Top 5 mais escutadas — Inbound",
+    overview_top5_outbound: "Top 5 mais escutadas — Outbound",
+    card_total: "Pacotes totais", card_inbound_packets: "Inbound (pacotes)", card_inbound_stations: "Inbound (estações)",
+    card_outbound_packets: "Outbound (pacotes)", card_outbound_stations: "Outbound (estações)",
+    rankings_dx_outbound: "Ranking DX — Outbound (quem ouviu o digi)",
+    rankings_dx_inbound: "Ranking DX — Inbound (quem o digi ouviu)",
+    rankings_most_outbound: "Mais escutadas — Outbound (todas)",
+    rankings_most_inbound: "Mais escutadas — Inbound (todas)",
+    th_station: "Estação", th_distance: "Distância", th_packets: "Pacotes", th_since: "Desde",
+    th_last_seen: "Última vez", th_when: "Quando", th_direction: "Sentido", th_via: "Via", th_path: "Caminho",
+    th_time: "Hora", th_from: "De", th_to: "Para", th_text: "Texto", th_status: "Status",
+    search_title: "Pesquisa", search_callsign_ph: "Indicativo (ex: LU5JB)",
+    opt_both_directions: "Ambos sentidos", opt_via_all: "Direto/repetido/rede (todos)",
+    opt_via_direto: "Direto", opt_via_repetido: "Repetido (via digipeater)", opt_via_rede: "Rede (APRS-IS)",
+    btn_search: "Buscar", history_title: "Histórico por data",
+    messages_send_title: "Mandar mensagem APRS", messages_to_ph: "Indicativo destino (ex: LU5JB-9)",
+    messages_text_ph: "Texto da mensagem", btn_send: "Enviar", messages_sent_title: "Mensagens enviadas",
+    settings_title: "Configurações do seu digi",
+    settings_hint: "Cada pessoa usa um equipamento diferente — preencha o IP e as portas do SEU digipeater na sua rede local. Nada aqui é compartilhado, fica só no seu computador.",
+    settings_section_digi: "Seu digipeater", settings_callsign: "Indicativo do digi",
+    settings_lat: "Latitude", settings_lon: "Longitude",
+    settings_section_rx: "RX local (quem o digi ouviu)", settings_rx_enabled: "Ativar captura local (RX)",
+    settings_rx_host: "IP do digi (rede local)", settings_rx_port: "Porta TCP KISS (RX)",
+    settings_section_tx: "TX (envio de mensagens)", settings_my_callsign: "Seu indicativo (remetente)",
+    settings_my_ssid: "SSID", settings_tx_host: "IP do digi (porta de TX)", settings_tx_port: "Porta TCP KISS (TX)",
+    settings_section_outbound: "Outbound (rede pública APRS-IS)", settings_outbound_enabled: "Ativar captura outbound",
+    settings_aprsis_filter: "Filtro APRS-IS (deixe em branco pra gerar automático a partir do seu indicativo)",
+    btn_save: "Salvar",
+    txt_no_packets_yet: "Ainda sem pacotes", txt_last_packet: "Último pacote:",
+    txt_no_data: "Sem dados ainda", txt_nothing_found: "Nada encontrado", txt_no_data_day: "Sem pacotes nesse dia",
+    txt_no_messages: "Nenhuma mensagem enviada ainda", txt_sending: "Enviando...",
+    txt_fill_fields: "Preencha o indicativo e o texto.", txt_conn_error: "Erro de conexão:",
+    txt_sent_awaiting: "Enviado pra", txt_awaiting_ack: "Aguardando ACK...",
+    txt_saving: "Salvando...", txt_saved: "Salvo! Reconectando com as novas configurações...", txt_save_error: "Erro ao salvar:",
+    txt_chars: "caracteres",
+  },
+  es: {
+    app_title: "APRS Digipeater Dashboard",
+    nav_overview: "Resumen", nav_rankings: "Rankings", nav_search: "Búsqueda",
+    nav_history: "Historial por fecha", nav_messages: "Mensajes", nav_settings: "Configuración",
+    overview_chart_title: "Paquetes por día (últimos 30 días)",
+    overview_top5_inbound: "Top 5 más escuchadas — Inbound",
+    overview_top5_outbound: "Top 5 más escuchadas — Outbound",
+    card_total: "Paquetes totales", card_inbound_packets: "Inbound (paquetes)", card_inbound_stations: "Inbound (estaciones)",
+    card_outbound_packets: "Outbound (paquetes)", card_outbound_stations: "Outbound (estaciones)",
+    rankings_dx_outbound: "Ranking DX — Outbound (quién escuchó el digi)",
+    rankings_dx_inbound: "Ranking DX — Inbound (a quién escuchó el digi)",
+    rankings_most_outbound: "Más escuchadas — Outbound (todas)",
+    rankings_most_inbound: "Más escuchadas — Inbound (todas)",
+    th_station: "Estación", th_distance: "Distancia", th_packets: "Paquetes", th_since: "Desde",
+    th_last_seen: "Última vez", th_when: "Cuándo", th_direction: "Dirección", th_via: "Vía", th_path: "Ruta",
+    th_time: "Hora", th_from: "De", th_to: "Para", th_text: "Texto", th_status: "Estado",
+    search_title: "Búsqueda", search_callsign_ph: "Indicativo (ej: LU5JB)",
+    opt_both_directions: "Ambas direcciones", opt_via_all: "Directo/repetido/red (todos)",
+    opt_via_direto: "Directo", opt_via_repetido: "Repetido (vía digipeater)", opt_via_rede: "Red (APRS-IS)",
+    btn_search: "Buscar", history_title: "Historial por fecha",
+    messages_send_title: "Enviar mensaje APRS", messages_to_ph: "Indicativo destino (ej: LU5JB-9)",
+    messages_text_ph: "Texto del mensaje", btn_send: "Enviar", messages_sent_title: "Mensajes enviados",
+    settings_title: "Configuración de tu digi",
+    settings_hint: "Cada persona usa un equipo diferente — completa la IP y los puertos de TU digipeater en tu red local. Nada de esto se comparte, queda solo en tu computadora.",
+    settings_section_digi: "Tu digipeater", settings_callsign: "Indicativo del digi",
+    settings_lat: "Latitud", settings_lon: "Longitud",
+    settings_section_rx: "RX local (a quién escuchó el digi)", settings_rx_enabled: "Activar captura local (RX)",
+    settings_rx_host: "IP del digi (red local)", settings_rx_port: "Puerto TCP KISS (RX)",
+    settings_section_tx: "TX (envío de mensajes)", settings_my_callsign: "Tu indicativo (remitente)",
+    settings_my_ssid: "SSID", settings_tx_host: "IP del digi (puerto de TX)", settings_tx_port: "Puerto TCP KISS (TX)",
+    settings_section_outbound: "Outbound (red pública APRS-IS)", settings_outbound_enabled: "Activar captura outbound",
+    settings_aprsis_filter: "Filtro APRS-IS (déjalo en blanco para generarlo automático desde tu indicativo)",
+    btn_save: "Guardar",
+    txt_no_packets_yet: "Todavía sin paquetes", txt_last_packet: "Último paquete:",
+    txt_no_data: "Todavía sin datos", txt_nothing_found: "No se encontró nada", txt_no_data_day: "Sin paquetes ese día",
+    txt_no_messages: "Ningún mensaje enviado todavía", txt_sending: "Enviando...",
+    txt_fill_fields: "Completa el indicativo y el texto.", txt_conn_error: "Error de conexión:",
+    txt_sent_awaiting: "Enviado a", txt_awaiting_ack: "Esperando ACK...",
+    txt_saving: "Guardando...", txt_saved: "¡Guardado! Reconectando con la nueva configuración...", txt_save_error: "Error al guardar:",
+    txt_chars: "caracteres",
+  },
+  en: {
+    app_title: "APRS Digipeater Dashboard",
+    nav_overview: "Overview", nav_rankings: "Rankings", nav_search: "Search",
+    nav_history: "History by date", nav_messages: "Messages", nav_settings: "Settings",
+    overview_chart_title: "Packets per day (last 30 days)",
+    overview_top5_inbound: "Top 5 most heard — Inbound",
+    overview_top5_outbound: "Top 5 most heard — Outbound",
+    card_total: "Total packets", card_inbound_packets: "Inbound (packets)", card_inbound_stations: "Inbound (stations)",
+    card_outbound_packets: "Outbound (packets)", card_outbound_stations: "Outbound (stations)",
+    rankings_dx_outbound: "DX Ranking — Outbound (who heard the digi)",
+    rankings_dx_inbound: "DX Ranking — Inbound (who the digi heard)",
+    rankings_most_outbound: "Most heard — Outbound (all)",
+    rankings_most_inbound: "Most heard — Inbound (all)",
+    th_station: "Station", th_distance: "Distance", th_packets: "Packets", th_since: "Since",
+    th_last_seen: "Last seen", th_when: "When", th_direction: "Direction", th_via: "Via", th_path: "Path",
+    th_time: "Time", th_from: "From", th_to: "To", th_text: "Text", th_status: "Status",
+    search_title: "Search", search_callsign_ph: "Callsign (e.g. LU5JB)",
+    opt_both_directions: "Both directions", opt_via_all: "Direct/relayed/network (all)",
+    opt_via_direto: "Direct", opt_via_repetido: "Relayed (via digipeater)", opt_via_rede: "Network (APRS-IS)",
+    btn_search: "Search", history_title: "History by date",
+    messages_send_title: "Send APRS message", messages_to_ph: "Destination callsign (e.g. LU5JB-9)",
+    messages_text_ph: "Message text", btn_send: "Send", messages_sent_title: "Sent messages",
+    settings_title: "Your digi's settings",
+    settings_hint: "Everyone uses different hardware — fill in the IP and ports of YOUR digipeater on your local network. Nothing here is shared, it stays on your computer only.",
+    settings_section_digi: "Your digipeater", settings_callsign: "Digi callsign",
+    settings_lat: "Latitude", settings_lon: "Longitude",
+    settings_section_rx: "Local RX (who the digi heard)", settings_rx_enabled: "Enable local capture (RX)",
+    settings_rx_host: "Digi IP (local network)", settings_rx_port: "TCP KISS port (RX)",
+    settings_section_tx: "TX (sending messages)", settings_my_callsign: "Your callsign (sender)",
+    settings_my_ssid: "SSID", settings_tx_host: "Digi IP (TX port)", settings_tx_port: "TCP KISS port (TX)",
+    settings_section_outbound: "Outbound (public APRS-IS network)", settings_outbound_enabled: "Enable outbound capture",
+    settings_aprsis_filter: "APRS-IS filter (leave blank to auto-generate from your callsign)",
+    btn_save: "Save",
+    txt_no_packets_yet: "No packets yet", txt_last_packet: "Last packet:",
+    txt_no_data: "No data yet", txt_nothing_found: "Nothing found", txt_no_data_day: "No packets that day",
+    txt_no_messages: "No messages sent yet", txt_sending: "Sending...",
+    txt_fill_fields: "Fill in the callsign and the text.", txt_conn_error: "Connection error:",
+    txt_sent_awaiting: "Sent to", txt_awaiting_ack: "Awaiting ACK...",
+    txt_saving: "Saving...", txt_saved: "Saved! Reconnecting with the new settings...", txt_save_error: "Error saving:",
+    txt_chars: "characters",
+  },
+};
+
+let currentLang = localStorage.getItem('aprs_dashboard_lang') || 'pt';
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS.pt[key] || key;
+}
+
+function applyTranslations() {
+  document.documentElement.lang = currentLang === 'pt' ? 'pt-BR' : (currentLang === 'es' ? 'es-419' : 'en-US');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('.lang-switch button').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
+  updateCharCount();
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('aprs_dashboard_lang', lang);
+  applyTranslations();
+  loadOverview();
+  loadRankings();
+  if ($('tab-search').classList.contains('active')) runSearch();
+  if ($('tab-history').classList.contains('active')) loadHistoryDates();
+  if ($('tab-messages').classList.contains('active')) loadMessages();
+}
+
+document.querySelectorAll('.lang-switch button').forEach(btn => {
+  btn.addEventListener('click', () => setLang(btn.dataset.lang));
+});
+
+// ---------------------------------------------------------------------
+// Navegação entre abas
+// ---------------------------------------------------------------------
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'history') loadHistoryDates();
+    if (btn.dataset.tab === 'messages') loadMessages();
+    if (btn.dataset.tab === 'settings') loadSettings();
+  });
+});
+
+function fmtKm(v) { return v == null ? '—' : v.toFixed(1) + ' km'; }
+function fmtDate(v) { return v ? v.replace('T', ' ').slice(0, 19) : '—'; }
+function qrzUrl(call) { return `https://www.qrz.com/db/${call.split('-')[0].toUpperCase()}`; }
+function aprsfiUrl(call) { return `https://aprs.fi/${call.toUpperCase()}`; }
+function stationLinks(call) {
+  return `<span class="station-links"><span>${call}</span>
+    <a href="${qrzUrl(call)}" target="_blank" rel="noopener" title="QRZ.com">QRZ</a>
+    <a href="${aprsfiUrl(call)}" target="_blank" rel="noopener" title="aprs.fi">aprs.fi</a>
+  </span>`;
+}
+function viaBadge(via) {
+  if (!via) return '';
+  const cls = via.startsWith('rede') || via.startsWith('red') || via.startsWith('network') ? 'rede' : via;
+  const label = via === 'direto' ? t('opt_via_direto') : (via === 'repetido' ? t('opt_via_repetido') : t('opt_via_rede'));
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+async function jget(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+async function loadOverview() {
+  const cfg = await jget('/api/config');
+  $('digi-info').textContent = `${cfg.digi_callsign} · ${cfg.digi_lat.toFixed(4)}, ${cfg.digi_lon.toFixed(4)}`;
+
+  const s = await jget('/api/stats/summary');
+  $('last-update').textContent = s.last_seen ? `${t('txt_last_packet')} ${fmtDate(s.last_seen)}` : t('txt_no_packets_yet');
+  const inb = s.by_direction.inbound || { packets: 0, stations: 0 };
+  const outb = s.by_direction.outbound || { packets: 0, stations: 0 };
+  $('summary-cards').innerHTML = `
+    <div class="card"><div class="num">${s.total_packets}</div><div class="label">${t('card_total')}</div></div>
+    <div class="card"><div class="num">${inb.packets}</div><div class="label">${t('card_inbound_packets')}</div></div>
+    <div class="card"><div class="num">${inb.stations}</div><div class="label">${t('card_inbound_stations')}</div></div>
+    <div class="card"><div class="num">${outb.packets}</div><div class="label">${t('card_outbound_packets')}</div></div>
+    <div class="card"><div class="num">${outb.stations}</div><div class="label">${t('card_outbound_stations')}</div></div>
+  `;
+
+  const ts = await jget('/api/stats/timeseries?days=30');
+  const ctx = document.getElementById('chart-timeseries');
+  if (window._tsChart) window._tsChart.destroy();
+  window._tsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ts.map(r => r.day),
+      datasets: [{ label: t('th_packets'), data: ts.map(r => r.count), borderColor: '#4fa3ff', backgroundColor: 'rgba(79,163,255,.15)', fill: true, tension: .25 }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8b96ad' } }, y: { ticks: { color: '#8b96ad' }, beginAtZero: true } } }
+  });
+
+  const topIn = await jget('/api/rankings/most_heard?direction=inbound&limit=5');
+  $('top-inbound').innerHTML = rowsMostHeard(topIn);
+  const topOut = await jget('/api/rankings/most_heard?direction=outbound&limit=5');
+  $('top-outbound').innerHTML = rowsMostHeard(topOut);
+}
+
+function rowsMostHeard(list) {
+  if (!list.length) return `<tr><td class="empty" colspan="2">${t('txt_no_data')}</td></tr>`;
+  return list.map(r => `<tr><td>${stationLinks(r.station)}</td><td>${r.packets} pkts</td></tr>`).join('');
+}
+
+async function loadRankings() {
+  const dxOut = await jget('/api/rankings/dx?direction=outbound&limit=20');
+  $('dx-outbound').innerHTML = dxOut.length ? dxOut.map((r, i) => `
+    <tr><td>${i + 1}</td><td>${stationLinks(r.station)}</td><td>${fmtKm(r.best_km)}</td><td>${r.packets}</td><td>${r.first_seen.slice(0,10)}</td></tr>
+  `).join('') : `<tr><td class="empty" colspan="5">${t('txt_no_data')}</td></tr>`;
+
+  const dxIn = await jget('/api/rankings/dx?direction=inbound&limit=20');
+  $('dx-inbound').innerHTML = dxIn.length ? dxIn.map((r, i) => `
+    <tr><td>${i + 1}</td><td>${stationLinks(r.station)}</td><td>${fmtKm(r.best_km)}</td><td>${r.packets}</td><td>${r.first_seen.slice(0,10)}</td></tr>
+  `).join('') : `<tr><td class="empty" colspan="5">${t('txt_no_data')}</td></tr>`;
+
+  const mostOut = await jget('/api/rankings/most_heard?direction=outbound&limit=30');
+  $('most-outbound').innerHTML = mostOut.length ? mostOut.map((r, i) => `
+    <tr><td>${i + 1}</td><td>${stationLinks(r.station)}</td><td>${r.packets}</td><td>${fmtDate(r.last_seen)}</td></tr>
+  `).join('') : `<tr><td class="empty" colspan="4">${t('txt_no_data')}</td></tr>`;
+
+  const mostIn = await jget('/api/rankings/most_heard?direction=inbound&limit=30');
+  $('most-inbound').innerHTML = mostIn.length ? mostIn.map((r, i) => `
+    <tr><td>${i + 1}</td><td>${stationLinks(r.station)}</td><td>${r.packets}</td><td>${fmtDate(r.last_seen)}</td></tr>
+  `).join('') : `<tr><td class="empty" colspan="4">${t('txt_no_data')}</td></tr>`;
+}
+
+async function runSearch() {
+  const params = new URLSearchParams();
+  if ($('s-q').value) params.set('q', $('s-q').value);
+  if ($('s-dir').value) params.set('direction', $('s-dir').value);
+  if ($('s-via').value) params.set('via', $('s-via').value);
+  if ($('s-from').value) params.set('date_from', $('s-from').value);
+  if ($('s-to').value) params.set('date_to', $('s-to').value);
+  const rows = await jget('/api/search?' + params.toString());
+  $('search-results').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${fmtDate(r.ts)}</td>
+      <td><span class="badge ${r.direction}">${r.direction}</span></td>
+      <td>${stationLinks(r.station)}</td>
+      <td>${fmtKm(r.distance_km)}</td>
+      <td>${viaBadge(r.via)}</td>
+      <td style="color:var(--muted); font-size:12px;">${r.path || ''}</td>
+    </tr>
+  `).join('') : `<tr><td class="empty" colspan="6">${t('txt_nothing_found')}</td></tr>`;
+}
+
+async function loadHistoryDates() {
+  const dates = await jget('/api/history/dates');
+  const sel = $('h-date');
+  sel.innerHTML = dates.length ? dates.map(d => `<option value="${d}">${d}</option>`).join('') : `<option value="">${t('txt_no_data')}</option>`;
+  sel.onchange = () => loadHistoryDay(sel.value);
+  if (dates.length) loadHistoryDay(dates[0]);
+  else $('history-results').innerHTML = `<tr><td class="empty" colspan="6">${t('txt_no_data')}</td></tr>`;
+}
+
+async function loadHistoryDay(date) {
+  if (!date) return;
+  const rows = await jget('/api/history/' + date);
+  $('history-results').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${(r.ts || '').slice(11, 19)}</td>
+      <td><span class="badge ${r.direction}">${r.direction}</span></td>
+      <td>${stationLinks(r.station)}</td>
+      <td>${fmtKm(r.distance_km)}</td>
+      <td>${viaBadge(r.via)}</td>
+      <td style="color:var(--muted); font-size:12px;">${r.path || ''}</td>
+    </tr>
+  `).join('') : `<tr><td class="empty" colspan="6">${t('txt_no_data_day')}</td></tr>`;
+}
+
+function updateCharCount() {
+  const len = $('m-text') ? $('m-text').value.length : 0;
+  const el = $('m-char-count');
+  if (!el) return;
+  el.textContent = `${len} / 60 ${t('txt_chars')}`;
+  el.classList.toggle('over', len > 60);
+}
+
+async function sendMessage() {
+  const to = $('m-to').value.trim();
+  const text = $('m-text').value.trim();
+  const statusEl = $('m-status');
+  if (!to || !text) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_fill_fields')}</span>`;
+    return;
+  }
+  $('m-send-btn').disabled = true;
+  statusEl.textContent = t('txt_sending');
+  try {
+    const r = await fetch('/api/messages/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, text })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      statusEl.innerHTML = `<span class="status-pending">${data.detail || 'error'}</span>`;
+    } else {
+      statusEl.innerHTML = `<span class="status-ok">${t('txt_sent_awaiting')} ${data.to} (msgid ${data.msgid}). ${t('txt_awaiting_ack')}</span>`;
+      $('m-text').value = '';
+      updateCharCount();
+      loadMessages();
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_conn_error')} ${e}</span>`;
+  } finally {
+    $('m-send-btn').disabled = false;
+  }
+}
+
+async function loadMessages() {
+  const rows = await jget('/api/messages');
+  $('messages-list').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td>${fmtDate(r.ts_sent)}</td>
+      <td>${r.from_station}</td>
+      <td>${stationLinks(r.to_station)}</td>
+      <td>${r.text}</td>
+      <td>${r.status === 'enviada' ? `<span class="status-pending">${r.status}</span>` : `<span class="status-ok">${r.status}</span>`}</td>
+    </tr>
+  `).join('') : `<tr><td class="empty" colspan="5">${t('txt_no_messages')}</td></tr>`;
+}
+
+// ---------------------------------------------------------------------
+// Configurações (IP/portas do digi de cada usuário)
+// ---------------------------------------------------------------------
+async function loadSettings() {
+  const s = await jget('/api/settings');
+  $('cfg-callsign').value = s.digi_callsign || '';
+  $('cfg-lat').value = s.digi_lat ?? '';
+  $('cfg-lon').value = s.digi_lon ?? '';
+  $('cfg-local-enabled').checked = !!s.local_feed_enabled;
+  $('cfg-local-host').value = s.local_feed_host || '';
+  $('cfg-local-port').value = s.local_feed_port ?? '';
+  $('cfg-my-callsign').value = s.messaging_my_callsign || '';
+  $('cfg-my-ssid').value = s.messaging_my_ssid ?? '';
+  $('cfg-tx-host').value = s.messaging_tx_host || '';
+  $('cfg-tx-port').value = s.messaging_tx_port ?? '';
+  $('cfg-aprsis-enabled').checked = s.aprs_is_enabled !== false;
+  $('cfg-aprsis-filter').value = s.aprs_is_filter || '';
+}
+
+async function saveSettings() {
+  const statusEl = $('settings-status');
+  $('settings-save-btn').disabled = true;
+  statusEl.textContent = t('txt_saving');
+  const payload = {
+    digi_callsign: $('cfg-callsign').value.trim(),
+    digi_lat: $('cfg-lat').value ? parseFloat($('cfg-lat').value) : 0,
+    digi_lon: $('cfg-lon').value ? parseFloat($('cfg-lon').value) : 0,
+    local_feed_enabled: $('cfg-local-enabled').checked,
+    local_feed_host: $('cfg-local-host').value.trim(),
+    local_feed_port: $('cfg-local-port').value || null,
+    messaging_my_callsign: $('cfg-my-callsign').value.trim(),
+    messaging_my_ssid: $('cfg-my-ssid').value || 0,
+    messaging_tx_host: $('cfg-tx-host').value.trim(),
+    messaging_tx_port: $('cfg-tx-port').value || null,
+    aprs_is_enabled: $('cfg-aprsis-enabled').checked,
+    aprs_is_filter: $('cfg-aprsis-filter').value.trim(),
+  };
+  try {
+    const r = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      statusEl.innerHTML = `<span class="status-pending">${t('txt_save_error')} ${data.detail || ''}</span>`;
+    } else {
+      statusEl.innerHTML = `<span class="status-ok">${t('txt_saved')}</span>`;
+      loadOverview();
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_conn_error')} ${e}</span>`;
+  } finally {
+    $('settings-save-btn').disabled = false;
+  }
+}
+
+applyTranslations();
+loadOverview();
+loadRankings();
+setInterval(loadOverview, 60000);
+setInterval(loadRankings, 60000);
+setInterval(() => { if ($('tab-messages').classList.contains('active')) loadMessages(); }, 15000);
+</script>
+
+</body>
+</html>

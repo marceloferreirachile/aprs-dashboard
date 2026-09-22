@@ -1,0 +1,53 @@
+# Configuração do APRS Dashboard
+#
+# Não precisa editar este arquivo na mão: na primeira vez que você roda o
+# app, ele copia isto pra config.yaml sozinho, e você preenche tudo (IP,
+# portas, indicativo) direto na aba "Configurações" do dashboard, pelo
+# navegador. Isso é só o ponto de partida em branco.
+
+digi:
+  callsign: ""   # ex: PY2ABC-10
+  lat: 0.0
+  lon: 0.0
+
+# --- RX (inbound — quem o digi ouviu) ---------------------------------------
+# Conecta na rede WiFi LOCAL, direto na porta TCP KISS do SEU digi (cada
+# equipamento/fabricante usa um IP e uma porta diferente — configure na aba
+# Configurações do dashboard). Cada frame é um pacote AX.25 real, com o path
+# original (dá pra ver se a estação foi ouvida DIRETO ou REPETIDA por outro
+# digipeater antes de chegar até você).
+local_feed:
+  enabled: false
+  host: ""
+  port: null
+
+# --- TX (envio de mensagens) -------------------------------------------------
+# Porta SEPARADA da porta de RX acima (pode ser uma segunda porta TCP KISS do
+# mesmo equipamento, ou outra). Só é usada quando você manda uma mensagem
+# pelo dashboard (conecta, envia, fecha).
+messaging:
+  my_callsign: ""
+  my_ssid: 0
+  tx:
+    host: ""
+    port: null
+
+# --- OUTBOUND (quem ouviu o digi) -------------------------------------------
+# Isso PRECISA vir da rede pública APRS-IS: só os iGates de outras estações
+# sabem que ouviram o seu digi por RF. Não tem como descobrir isso só
+# escutando localmente. O filtro é preenchido automaticamente com o seu
+# indicativo quando você salva as Configurações.
+aprs_is:
+  enabled: true
+  host: "rotate.aprs2.net"
+  port: 14580
+  login_callsign: "N0CALL"
+  passcode: "-1"
+  filter: ""
+
+web:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  path: "aprs_dashboard.db"

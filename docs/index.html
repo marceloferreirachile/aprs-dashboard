@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>APRS Digipeater Dashboard — Download</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #161d2e; --panel2: #1d2740; --border: #2a3550;
+    --text: #e8ecf4; --muted: #8b96ad; --accent: #4fa3ff; --accent2: #34d1a1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 40px 20px;
+  }
+  h1 { font-size: 26px; margin-bottom: 4px; text-align: center; }
+  p.subtitle { color: var(--muted); text-align: center; max-width: 560px; margin-top: 0; }
+  .cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin: 32px 0; }
+  .os-card {
+    background: var(--panel); border: 2px solid var(--border); border-radius: 16px;
+    padding: 28px 32px; width: 200px; text-align: center; text-decoration: none; color: var(--text);
+    transition: border-color .15s, transform .15s;
+  }
+  .os-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .os-card.recommended { border-color: var(--accent2); }
+  .os-card .icon { font-size: 42px; margin-bottom: 10px; }
+  .os-card .os-name { font-weight: 700; font-size: 16px; }
+  .os-card .os-tag { color: var(--accent2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
+  .os-card .os-hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .steps { max-width: 620px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-top: 10px; }
+  .steps h2 { font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .steps ol { padding-left: 20px; line-height: 1.8; }
+  .steps code { background: var(--panel2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .note { max-width: 620px; color: var(--muted); font-size: 13px; margin-top: 18px; line-height: 1.6; }
+  a.text-link { color: var(--accent); }
+  .about-box { max-width: 480px; margin-top: 40px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; font-size: 13px; }
+  .about-box .about-title { background: var(--accent); color: #06111f; text-align: center; font-weight: 700; padding: 8px; }
+  .about-box table { width: 100%; border-collapse: collapse; }
+  .about-box td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  .about-box td:first-child { color: var(--muted); font-weight: 600; width: 90px; }
+  .about-box tr:last-child td { border-bottom: none; }
+  .about-box a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<h1>APRS Digipeater Dashboard</h1>
+<p class="subtitle">Histórico completo, gráficos, rankings DX e mensagens pro seu digipeater APRS. Escolha o seu sistema e baixe — não precisa instalar Python nem nada extra.</p>
+
+<div class="cards" id="os-cards">
+  <a class="os-card" id="card-windows" href="https://github.com/marceloferreirachile/aprs-dashboard/releases/latest/download/aprs_dashboard-windows.exe">
+    <div class="icon">🪟</div>
+    <div class="os-name">Windows</div>
+    <div class="os-hint">.exe — duplo clique pra abrir</div>
+  </a>
+  <a class="os-card" id="card-macos" href="https://github.com/marceloferreirachile/aprs-dashboard/releases/latest/download/aprs_dashboard-macos">
+    <div class="icon">🍎</div>
+    <div class="os-name">macOS</div>
+    <div class="os-hint">Intel e Apple Silicon</div>
+  </a>
+  <a class="os-card" id="card-linux" href="https://github.com/marceloferreirachile/aprs-dashboard/releases/latest/download/aprs_dashboard-linux">
+    <div class="icon">🐧</div>
+    <div class="os-name">Linux</div>
+    <div class="os-hint">binário genérico x86_64</div>
+  </a>
+</div>
+
+<div class="steps">
+  <h2>Como usar depois de baixar</h2>
+  <ol>
+    <li>Baixe o arquivo do seu sistema acima.</li>
+    <li><strong>Windows:</strong> se aparecer aviso do SmartScreen, clique em "Mais informações" → "Executar assim mesmo" (é normal pra executáveis sem certificado pago). <strong>macOS:</strong> clique com o botão direito no arquivo → Abrir (na primeira vez, pra passar do Gatekeeper). <strong>Linux:</strong> <code>chmod +x aprs_dashboard-linux</code> e depois <code>./aprs_dashboard-linux</code>.</li>
+    <li>O programa abre uma janela de terminal (deixe aberta — é o servidor rodando) e o navegador abre sozinho em <code>http://localhost:8080</code>.</li>
+    <li>Na aba <strong>Configurações</strong> do dashboard, preencha o IP e as portas do SEU digipeater na sua rede local.</li>
+  </ol>
+</div>
+
+<p class="note">
+  Código aberto sob <strong>GPLv3</strong> — qualquer modificação distribuída precisa continuar aberta.
+  Veja o código-fonte e relate problemas no
+  <a class="text-link" href="https://github.com/marceloferreirachile/aprs-dashboard" target="_blank" rel="noopener">GitHub</a>.
+</p>
+
+<div class="about-box">
+  <div class="about-title">Developer/Support Information</div>
+  <table>
+    <tr><td>Author:</td><td>Marcelo Ferreira</td></tr>
+    <tr><td>Callsign:</td><td>LU6JMF-10</td></tr>
+    <tr><td>Country:</td><td>Concepcion del Uruguay, Entre Rios, Argentina</td></tr>
+    <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
+    <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
+    <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
+  </table>
+</div>
+
+<script>
+  // Destaca o card do sistema operacional detectado, igual um instalador de verdade.
+  const ua = navigator.userAgent;
+  let osId = null;
+  if (/Windows/i.test(ua)) osId = 'windows';
+  else if (/Macintosh|Mac OS X/i.test(ua)) osId = 'macos';
+  else if (/Linux/i.test(ua)) osId = 'linux';
+  if (osId) {
+    const card = document.getElementById('card-' + osId);
+    if (card) {
+      card.classList.add('recommended');
+      const tag = document.createElement('div');
+      tag.className = 'os-tag';
+      tag.textContent = 'Recomendado pra você';
+      card.insertBefore(tag, card.querySelector('.os-hint'));
+    }
+  }
+</script>
+
+</body>
+</html>
