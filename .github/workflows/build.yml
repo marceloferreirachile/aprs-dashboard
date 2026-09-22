@@ -51,6 +51,14 @@ jobs:
       - name: Buildar executável
         run: pyinstaller --noconfirm aprs_dashboard.spec
 
+      # Assinatura "ad-hoc" (gratuita, sem certificado) — só pra Apple Silicon
+      # não recusar o app como "danificado" quando não tem NENHUMA assinatura.
+      # Não substitui a assinatura de verdade (Developer ID, abaixo) — só
+      # evita esse falso positivo nos builds de teste não assinados.
+      - name: Ad-hoc sign (evita "app danificado" em builds de teste)
+        if: matrix.os == 'macos-latest'
+        run: codesign --force --deep -s - "dist/aprs_dashboard.app"
+
       # Assina/notariza sempre que for um lançamento de verdade (push de tag
       # v*). Numa execução manual (workflow_dispatch) só assina se marcar a
       # opção "sign" — deixado desmarcado, fica rápido pra testar tray icon,
