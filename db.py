@@ -250,6 +250,32 @@ def search(q=None, direction=None, via=None, date_from=None, date_to=None, limit
         return [dict(r) for r in cur.fetchall()]
 
 
+def recent(direction=None, page=1, page_size=50):
+    """Pacotes mais recentes, paginado — estilo 'LAST HEARD' do firmware do digi."""
+    offset = (page - 1) * page_size
+    sql = "SELECT * FROM sightings WHERE 1=1"
+    params = []
+    if direction:
+        sql += " AND direction = ?"
+        params.append(direction)
+    sql += " ORDER BY ts DESC LIMIT ? OFFSET ?"
+    params += [page_size, offset]
+    with cursor() as cur:
+        cur.execute(sql, params)
+        return [dict(r) for r in cur.fetchall()]
+
+
+def recent_count(direction=None):
+    sql = "SELECT COUNT(*) c FROM sightings WHERE 1=1"
+    params = []
+    if direction:
+        sql += " AND direction = ?"
+        params.append(direction)
+    with cursor() as cur:
+        cur.execute(sql, params)
+        return cur.fetchone()["c"]
+
+
 def history_by_date(date: str):
     with cursor() as cur:
         cur.execute(

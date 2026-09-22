@@ -44,7 +44,12 @@
   .card .num { font-size: 26px; font-weight: 700; }
   .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 20px; }
-  .panel h2 { margin-top: 0; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .panel h2 {
+    margin: -18px -18px 14px; padding: 10px 18px; border-radius: 12px 12px 0 0;
+    background: var(--accent); color: #06111f; font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  th { background: var(--panel2); }
   .panel p.hint { color: var(--muted); font-size: 13px; margin-top: -6px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
@@ -66,6 +71,16 @@
     border-radius: 8px; font-weight: 600; cursor: pointer;
   }
   button.action:disabled { opacity: .5; cursor: not-allowed; }
+  button.action.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+  .alert-panel { border-color: var(--warn); display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .pager { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .pager button { background: var(--panel2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
+  .pager button.active { background: var(--accent); color: #06111f; border-color: var(--accent); font-weight: 700; }
+  .pager button:disabled { opacity: .4; cursor: not-allowed; }
+  .advanced-settings { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .advanced-settings summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+  .advanced-settings summary:hover { color: var(--text); }
+  #geo-pos-btn { margin-left: 8px; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
   canvas { max-height: 320px; }
@@ -80,8 +95,7 @@
   .char-count.over { color: var(--danger); }
   .status-ok { color: var(--accent2); }
   .status-pending { color: var(--warn); }
-  footer { padding: 24px; }
-  .about-box { max-width: 480px; margin: 0 auto; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; font-size: 13px; }
+  .about-box { max-width: 480px; margin: 20px auto 0; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; font-size: 13px; }
   .about-box .about-title { background: var(--accent); color: #06111f; text-align: center; font-weight: 700; padding: 8px; }
   .about-box table { width: 100%; border-collapse: collapse; }
   .about-box td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
@@ -122,11 +136,28 @@
   <button data-tab="history" data-i18n="nav_history">Histórico por data</button>
   <button data-tab="messages" data-i18n="nav_messages">Mensagens</button>
   <button data-tab="settings" data-i18n="nav_settings">Configurações</button>
+  <button data-tab="about" data-i18n="nav_about">Sobre</button>
 </nav>
 
 <main>
 
   <section id="tab-overview" class="tab active">
+    <div class="panel alert-panel" id="position-alert" style="display:none;">
+      <span data-i18n="alert_no_position">Seu digi ainda não tem posição configurada (0,0) — as distâncias no ranking vão ficar erradas.</span>
+      <button type="button" class="action secondary" onclick="goToSettings()" data-i18n="btn_go_settings" style="margin-left:10px;">Configurar agora</button>
+    </div>
+    <div class="panel">
+      <h2 data-i18n="last_heard_title">Últimas estações escutadas</h2>
+      <table>
+        <thead><tr>
+          <th data-i18n="th_time">Hora</th><th data-i18n="th_direction">Sentido</th>
+          <th data-i18n="th_station">Estação</th><th data-i18n="th_via">Via</th>
+          <th data-i18n="th_path">Caminho</th><th data-i18n="th_distance">Distância</th>
+        </tr></thead>
+        <tbody id="last-heard-body"></tbody>
+      </table>
+      <div id="last-heard-pager" class="pager"></div>
+    </div>
     <div class="cards" id="summary-cards"></div>
     <div class="panel">
       <h2 data-i18n="overview_chart_title">Pacotes por dia (últimos 30 dias)</h2>
@@ -263,12 +294,19 @@
       <h2 data-i18n="settings_title">Configurações do seu digi</h2>
       <p class="hint" data-i18n="settings_hint">Cada pessoa usa um equipamento diferente — preencha o IP e as portas do SEU digipeater na sua rede local. Nada aqui é compartilhado, fica só no seu computador.</p>
       <div class="settings-form">
-        <div class="section-title" data-i18n="settings_section_digi">Seu digipeater</div>
         <div class="field">
           <label data-i18n="settings_callsign">Indicativo do digi</label>
           <input id="cfg-callsign" placeholder="PY2ABC-10">
         </div>
-        <div class="field"></div>
+        <div class="field">
+          <label data-i18n="settings_rx_host">IP do digi (rede local)</label>
+          <input id="cfg-local-host" placeholder="192.168.x.x">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <button type="button" class="action secondary" id="detect-pos-btn" onclick="detectPosition()" data-i18n="btn_detect_pos">Detectar posição automaticamente</button>
+          <button type="button" class="action secondary" id="geo-pos-btn" onclick="useMyLocation()" data-i18n="btn_use_my_location">Usar minha localização (navegador)</button>
+          <span id="detect-pos-status" style="margin-left:10px; font-size:13px;"></span>
+        </div>
         <div class="field">
           <label data-i18n="settings_lat">Latitude</label>
           <input id="cfg-lat" type="number" step="0.0001" placeholder="-32.4825">
@@ -277,51 +315,39 @@
           <label data-i18n="settings_lon">Longitude</label>
           <input id="cfg-lon" type="number" step="0.0001" placeholder="-58.2372">
         </div>
-
-        <div class="section-title" data-i18n="settings_section_rx">RX local (quem o digi ouviu)</div>
-        <div class="field checkbox">
-          <input id="cfg-local-enabled" type="checkbox">
-          <label data-i18n="settings_rx_enabled" style="margin-bottom:0">Ativar captura local (RX)</label>
-        </div>
-        <div class="field"></div>
-        <div class="field">
-          <label data-i18n="settings_rx_host">IP do digi (rede local)</label>
-          <input id="cfg-local-host" placeholder="192.168.x.x">
-        </div>
-        <div class="field">
-          <label data-i18n="settings_rx_port">Porta TCP KISS (RX)</label>
-          <input id="cfg-local-port" type="number" placeholder="8001">
-        </div>
-
-        <div class="section-title" data-i18n="settings_section_tx">TX (envio de mensagens)</div>
-        <div class="field">
-          <label data-i18n="settings_my_callsign">Seu indicativo (remetente)</label>
-          <input id="cfg-my-callsign" placeholder="PY2ABC">
-        </div>
-        <div class="field">
-          <label data-i18n="settings_my_ssid">SSID</label>
-          <input id="cfg-my-ssid" type="number" placeholder="7">
-        </div>
-        <div class="field">
-          <label data-i18n="settings_tx_host">IP do digi (porta de TX)</label>
-          <input id="cfg-tx-host" placeholder="192.168.x.x">
-        </div>
-        <div class="field">
-          <label data-i18n="settings_tx_port">Porta TCP KISS (TX)</label>
-          <input id="cfg-tx-port" type="number" placeholder="8002">
-        </div>
-
-        <div class="section-title" data-i18n="settings_section_outbound">Outbound (rede pública APRS-IS)</div>
-        <div class="field checkbox">
-          <input id="cfg-aprsis-enabled" type="checkbox">
-          <label data-i18n="settings_outbound_enabled" style="margin-bottom:0">Ativar captura outbound</label>
-        </div>
-        <div class="field"></div>
-        <div class="field" style="grid-column: 1 / -1;">
-          <label data-i18n="settings_aprsis_filter">Filtro APRS-IS (deixe em branco pra gerar automático a partir do seu indicativo)</label>
-          <input id="cfg-aprsis-filter" placeholder="b/PY2ABC-10*">
-        </div>
       </div>
+
+      <details class="advanced-settings">
+        <summary data-i18n="settings_advanced">Configuração avançada (portas, filtro)</summary>
+        <div class="settings-form" style="margin-top:14px;">
+          <div class="field">
+            <label data-i18n="settings_rx_port">Porta TCP KISS (RX)</label>
+            <input id="cfg-local-port" type="number" placeholder="8001">
+          </div>
+          <div class="field">
+            <label data-i18n="settings_tx_port">Porta TCP KISS (TX)</label>
+            <input id="cfg-tx-port" type="number" placeholder="8002">
+          </div>
+
+          <div class="section-title" data-i18n="settings_section_tx">Mensagens (opcional)</div>
+          <div class="field">
+            <label data-i18n="settings_my_callsign">Seu indicativo (remetente)</label>
+            <input id="cfg-my-callsign" placeholder="PY2ABC">
+          </div>
+          <div class="field">
+            <label data-i18n="settings_my_ssid">SSID</label>
+            <input id="cfg-my-ssid" type="number" placeholder="7">
+          </div>
+
+          <div class="section-title" data-i18n="settings_section_outbound">Rede pública (APRS-IS)</div>
+          <div class="field checkbox">
+            <input id="cfg-aprsis-enabled" type="checkbox">
+            <label data-i18n="settings_outbound_enabled" style="margin-bottom:0">Ativar captura outbound</label>
+          </div>
+          <div class="field"></div>
+        </div>
+      </details>
+
       <div style="margin-top:16px;">
         <button class="action" id="settings-save-btn" onclick="saveSettings()" data-i18n="btn_save">Salvar</button>
         <span id="settings-status" style="margin-left:10px; font-size:13px;"></span>
@@ -329,21 +355,27 @@
     </div>
   </section>
 
-</main>
+  <section id="tab-about" class="tab">
+    <div class="panel">
+      <h2 data-i18n="about_version_title">Versão instalada</h2>
+      <p><span id="about-version">—</span></p>
+      <button type="button" class="action" id="check-updates-btn" onclick="checkForUpdates()" data-i18n="btn_check_updates">Verificar atualizações</button>
+      <span id="update-status" style="margin-left:10px; font-size:13px;"></span>
+    </div>
+    <div class="about-box">
+      <div class="about-title">Developer/Support Information</div>
+      <table>
+        <tr><td>Author:</td><td>Marcelo Ferreira</td></tr>
+        <tr><td>Callsign:</td><td>LU6JMF-10</td></tr>
+        <tr><td>Country:</td><td>Concepcion del Uruguay, Entre Rios, Argentina</td></tr>
+        <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
+        <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
+        <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
+      </table>
+    </div>
+  </section>
 
-<footer>
-  <div class="about-box">
-    <div class="about-title">Developer/Support Information</div>
-    <table>
-      <tr><td>Author:</td><td>Marcelo Ferreira</td></tr>
-      <tr><td>Callsign:</td><td>LU6JMF-10</td></tr>
-      <tr><td>Country:</td><td>Concepcion del Uruguay, Entre Rios, Argentina</td></tr>
-      <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
-      <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
-      <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
-    </table>
-  </div>
-</footer>
+</main>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -378,13 +410,11 @@ const TRANSLATIONS = {
     settings_hint: "Cada pessoa usa um equipamento diferente — preencha o IP e as portas do SEU digipeater na sua rede local. Nada aqui é compartilhado, fica só no seu computador.",
     settings_section_digi: "Seu digipeater", settings_callsign: "Indicativo do digi",
     settings_lat: "Latitude", settings_lon: "Longitude",
-    settings_section_rx: "RX local (quem o digi ouviu)", settings_rx_enabled: "Ativar captura local (RX)",
     settings_rx_host: "IP do digi (rede local)", settings_rx_port: "Porta TCP KISS (RX)",
-    settings_section_tx: "TX (envio de mensagens)", settings_my_callsign: "Seu indicativo (remetente)",
-    settings_my_ssid: "SSID", settings_tx_host: "IP do digi (porta de TX)", settings_tx_port: "Porta TCP KISS (TX)",
-    settings_section_outbound: "Outbound (rede pública APRS-IS)", settings_outbound_enabled: "Ativar captura outbound",
-    settings_aprsis_filter: "Filtro APRS-IS (deixe em branco pra gerar automático a partir do seu indicativo)",
-    btn_save: "Salvar",
+    settings_section_tx: "Mensagens (opcional)", settings_my_callsign: "Seu indicativo (remetente)",
+    settings_my_ssid: "SSID", settings_tx_port: "Porta TCP KISS (TX)",
+    settings_section_outbound: "Rede pública (APRS-IS)", settings_outbound_enabled: "Ativar captura outbound",
+    btn_save: "Salvar", btn_detect_pos: "Detectar posição automaticamente",
     txt_no_packets_yet: "Ainda sem pacotes", txt_last_packet: "Último pacote:",
     txt_no_data: "Sem dados ainda", txt_nothing_found: "Nada encontrado", txt_no_data_day: "Sem pacotes nesse dia",
     txt_no_messages: "Nenhuma mensagem enviada ainda", txt_sending: "Enviando...",
@@ -392,6 +422,19 @@ const TRANSLATIONS = {
     txt_sent_awaiting: "Enviado pra", txt_awaiting_ack: "Aguardando ACK...",
     txt_saving: "Salvando...", txt_saved: "Salvo! Reconectando com as novas configurações...", txt_save_error: "Erro ao salvar:",
     txt_chars: "caracteres",
+    txt_detecting: "Escutando o digi (até 20s)...", txt_detected: "Posição detectada e preenchida!",
+    txt_detect_fail: "Não recebi nenhum beacon de posição do digi. Preencha manualmente.",
+    txt_detect_need_fields: "Preencha o indicativo, o IP e a porta RX antes de detectar.",
+    last_heard_title: "Últimas estações escutadas", alert_no_position: "Seu digi ainda não tem posição configurada (0,0) — as distâncias no ranking vão ficar erradas.",
+    btn_go_settings: "Configurar agora", txt_no_data_yet: "Ainda sem pacotes",
+    btn_use_my_location: "Usar minha localização (navegador)",
+    txt_locating: "Obtendo localização...", txt_located: "Localização obtida! Confira e ajuste se precisar.",
+    txt_locate_fail: "Não consegui obter sua localização. Preencha manualmente.",
+    settings_advanced: "Configuração avançada (portas, filtro)",
+    nav_about: "Sobre", about_version_title: "Versão instalada",
+    btn_check_updates: "Verificar atualizações", txt_checking_updates: "Verificando no GitHub...",
+    txt_up_to_date: "Você já está na versão mais recente.", txt_update_available: "Nova versão disponível:",
+    btn_download_update: "Baixar atualização",
   },
   es: {
     app_title: "APRS Digipeater Dashboard",
@@ -419,13 +462,11 @@ const TRANSLATIONS = {
     settings_hint: "Cada persona usa un equipo diferente — completa la IP y los puertos de TU digipeater en tu red local. Nada de esto se comparte, queda solo en tu computadora.",
     settings_section_digi: "Tu digipeater", settings_callsign: "Indicativo del digi",
     settings_lat: "Latitud", settings_lon: "Longitud",
-    settings_section_rx: "RX local (a quién escuchó el digi)", settings_rx_enabled: "Activar captura local (RX)",
     settings_rx_host: "IP del digi (red local)", settings_rx_port: "Puerto TCP KISS (RX)",
-    settings_section_tx: "TX (envío de mensajes)", settings_my_callsign: "Tu indicativo (remitente)",
-    settings_my_ssid: "SSID", settings_tx_host: "IP del digi (puerto de TX)", settings_tx_port: "Puerto TCP KISS (TX)",
-    settings_section_outbound: "Outbound (red pública APRS-IS)", settings_outbound_enabled: "Activar captura outbound",
-    settings_aprsis_filter: "Filtro APRS-IS (déjalo en blanco para generarlo automático desde tu indicativo)",
-    btn_save: "Guardar",
+    settings_section_tx: "Mensajes (opcional)", settings_my_callsign: "Tu indicativo (remitente)",
+    settings_my_ssid: "SSID", settings_tx_port: "Puerto TCP KISS (TX)",
+    settings_section_outbound: "Red pública (APRS-IS)", settings_outbound_enabled: "Activar captura outbound",
+    btn_save: "Guardar", btn_detect_pos: "Detectar posición automáticamente",
     txt_no_packets_yet: "Todavía sin paquetes", txt_last_packet: "Último paquete:",
     txt_no_data: "Todavía sin datos", txt_nothing_found: "No se encontró nada", txt_no_data_day: "Sin paquetes ese día",
     txt_no_messages: "Ningún mensaje enviado todavía", txt_sending: "Enviando...",
@@ -433,6 +474,19 @@ const TRANSLATIONS = {
     txt_sent_awaiting: "Enviado a", txt_awaiting_ack: "Esperando ACK...",
     txt_saving: "Guardando...", txt_saved: "¡Guardado! Reconectando con la nueva configuración...", txt_save_error: "Error al guardar:",
     txt_chars: "caracteres",
+    txt_detecting: "Escuchando el digi (hasta 20s)...", txt_detected: "¡Posición detectada y completada!",
+    txt_detect_fail: "No recibí ningún beacon de posición del digi. Completa manualmente.",
+    txt_detect_need_fields: "Completa el indicativo, la IP y el puerto RX antes de detectar.",
+    last_heard_title: "Últimas estaciones escuchadas", alert_no_position: "Tu digi todavía no tiene posición configurada (0,0) — las distancias del ranking van a estar mal.",
+    btn_go_settings: "Configurar ahora", txt_no_data_yet: "Todavía sin paquetes",
+    btn_use_my_location: "Usar mi ubicación (navegador)",
+    txt_locating: "Obteniendo ubicación...", txt_located: "¡Ubicación obtenida! Revisa y ajusta si hace falta.",
+    txt_locate_fail: "No pude obtener tu ubicación. Completa manualmente.",
+    settings_advanced: "Configuración avanzada (puertos, filtro)",
+    nav_about: "Acerca de", about_version_title: "Versión instalada",
+    btn_check_updates: "Buscar actualizaciones", txt_checking_updates: "Buscando en GitHub...",
+    txt_up_to_date: "Ya tenés la última versión.", txt_update_available: "Nueva versión disponible:",
+    btn_download_update: "Descargar actualización",
   },
   en: {
     app_title: "APRS Digipeater Dashboard",
@@ -460,13 +514,11 @@ const TRANSLATIONS = {
     settings_hint: "Everyone uses different hardware — fill in the IP and ports of YOUR digipeater on your local network. Nothing here is shared, it stays on your computer only.",
     settings_section_digi: "Your digipeater", settings_callsign: "Digi callsign",
     settings_lat: "Latitude", settings_lon: "Longitude",
-    settings_section_rx: "Local RX (who the digi heard)", settings_rx_enabled: "Enable local capture (RX)",
     settings_rx_host: "Digi IP (local network)", settings_rx_port: "TCP KISS port (RX)",
-    settings_section_tx: "TX (sending messages)", settings_my_callsign: "Your callsign (sender)",
-    settings_my_ssid: "SSID", settings_tx_host: "Digi IP (TX port)", settings_tx_port: "TCP KISS port (TX)",
-    settings_section_outbound: "Outbound (public APRS-IS network)", settings_outbound_enabled: "Enable outbound capture",
-    settings_aprsis_filter: "APRS-IS filter (leave blank to auto-generate from your callsign)",
-    btn_save: "Save",
+    settings_section_tx: "Messages (optional)", settings_my_callsign: "Your callsign (sender)",
+    settings_my_ssid: "SSID", settings_tx_port: "TCP KISS port (TX)",
+    settings_section_outbound: "Public network (APRS-IS)", settings_outbound_enabled: "Enable outbound capture",
+    btn_save: "Save", btn_detect_pos: "Auto-detect position",
     txt_no_packets_yet: "No packets yet", txt_last_packet: "Last packet:",
     txt_no_data: "No data yet", txt_nothing_found: "Nothing found", txt_no_data_day: "No packets that day",
     txt_no_messages: "No messages sent yet", txt_sending: "Sending...",
@@ -474,6 +526,19 @@ const TRANSLATIONS = {
     txt_sent_awaiting: "Sent to", txt_awaiting_ack: "Awaiting ACK...",
     txt_saving: "Saving...", txt_saved: "Saved! Reconnecting with the new settings...", txt_save_error: "Error saving:",
     txt_chars: "characters",
+    txt_detecting: "Listening to the digi (up to 20s)...", txt_detected: "Position detected and filled in!",
+    txt_detect_fail: "Didn't receive a position beacon from the digi. Fill it in manually.",
+    txt_detect_need_fields: "Fill in the callsign, IP and RX port before detecting.",
+    last_heard_title: "Recently heard stations", alert_no_position: "Your digi doesn't have a position set yet (0,0) — ranking distances will be wrong.",
+    btn_go_settings: "Set it up now", txt_no_data_yet: "No packets yet",
+    btn_use_my_location: "Use my location (browser)",
+    txt_locating: "Getting location...", txt_located: "Location obtained! Check and adjust if needed.",
+    txt_locate_fail: "Couldn't get your location. Fill it in manually.",
+    settings_advanced: "Advanced settings (ports, filter)",
+    nav_about: "About", about_version_title: "Installed version",
+    btn_check_updates: "Check for updates", txt_checking_updates: "Checking GitHub...",
+    txt_up_to_date: "You're already on the latest version.", txt_update_available: "New version available:",
+    btn_download_update: "Download update",
   },
 };
 
@@ -518,6 +583,7 @@ document.querySelectorAll('nav button').forEach(btn => {
     if (btn.dataset.tab === 'history') loadHistoryDates();
     if (btn.dataset.tab === 'messages') loadMessages();
     if (btn.dataset.tab === 'settings') loadSettings();
+    if (btn.dataset.tab === 'about') loadAbout();
   });
 });
 
@@ -543,9 +609,14 @@ async function jget(url) {
   return r.json();
 }
 
+function goToSettings() {
+  document.querySelector('nav button[data-tab="settings"]').click();
+}
+
 async function loadOverview() {
   const cfg = await jget('/api/config');
   $('digi-info').textContent = `${cfg.digi_callsign} · ${cfg.digi_lat.toFixed(4)}, ${cfg.digi_lon.toFixed(4)}`;
+  $('position-alert').style.display = (!cfg.digi_lat && !cfg.digi_lon) ? 'flex' : 'none';
 
   const s = await jget('/api/stats/summary');
   $('last-update').textContent = s.last_seen ? `${t('txt_last_packet')} ${fmtDate(s.last_seen)}` : t('txt_no_packets_yet');
@@ -575,6 +646,32 @@ async function loadOverview() {
   $('top-inbound').innerHTML = rowsMostHeard(topIn);
   const topOut = await jget('/api/rankings/most_heard?direction=outbound&limit=5');
   $('top-outbound').innerHTML = rowsMostHeard(topOut);
+
+  loadLastHeard(lastHeardPage);
+}
+
+let lastHeardPage = 1;
+async function loadLastHeard(page = 1) {
+  lastHeardPage = page;
+  const data = await jget(`/api/last_heard?page=${page}&page_size=50`);
+  $('last-heard-body').innerHTML = data.rows.length ? data.rows.map(r => `
+    <tr>
+      <td>${fmtDate(r.ts)}</td>
+      <td><span class="badge ${r.direction}">${r.direction}</span></td>
+      <td>${stationLinks(r.station)}</td>
+      <td>${viaBadge(r.via)}</td>
+      <td>${r.path || '—'}</td>
+      <td>${fmtKm(r.distance_km)}</td>
+    </tr>
+  `).join('') : `<tr><td class="empty" colspan="6">${t('txt_no_data_yet')}</td></tr>`;
+
+  const pagerEl = $('last-heard-pager');
+  if (data.pages <= 1) { pagerEl.innerHTML = ''; return; }
+  let html = '';
+  for (let p = 1; p <= data.pages; p++) {
+    html += `<button type="button" class="${p === data.page ? 'active' : ''}" onclick="loadLastHeard(${p})">${p}</button>`;
+  }
+  pagerEl.innerHTML = html;
 }
 
 function rowsMostHeard(list) {
@@ -709,47 +806,48 @@ async function loadSettings() {
   $('cfg-callsign').value = s.digi_callsign || '';
   $('cfg-lat').value = s.digi_lat ?? '';
   $('cfg-lon').value = s.digi_lon ?? '';
-  $('cfg-local-enabled').checked = !!s.local_feed_enabled;
   $('cfg-local-host').value = s.local_feed_host || '';
   // KISS ports default to the digi firmware's factory values (8001/8002) so
   // most people never have to type them — only the IP really changes.
   $('cfg-local-port').value = s.local_feed_port ?? 8001;
   $('cfg-my-callsign').value = s.messaging_my_callsign || '';
   $('cfg-my-ssid').value = s.messaging_my_ssid ?? '';
-  $('cfg-tx-host').value = s.messaging_tx_host || '';
   $('cfg-tx-port').value = s.messaging_tx_port ?? 8002;
   $('cfg-aprsis-enabled').checked = s.aprs_is_enabled !== false;
-  $('cfg-aprsis-filter').value = s.aprs_is_filter || '';
 
-  // The TX port almost always lives on the same digi as RX — just a
-  // different port — so mirror the IP automatically until the person
-  // types something different into the TX field themselves.
-  txHostAutoFilled = !$('cfg-tx-host').value || $('cfg-tx-host').value === $('cfg-local-host').value;
+  // "Seu indicativo" quase sempre é o mesmo do digi (é você quem opera os
+  // dois) — preenche sozinho até a pessoa digitar algo diferente.
+  myCallAutoFilled = !$('cfg-my-callsign').value || $('cfg-my-callsign').value === $('cfg-callsign').value;
 }
 
-let txHostAutoFilled = true;
-$('cfg-local-host').addEventListener('input', () => {
-  if (txHostAutoFilled) $('cfg-tx-host').value = $('cfg-local-host').value;
+let myCallAutoFilled = true;
+$('cfg-callsign').addEventListener('input', () => {
+  if (myCallAutoFilled) $('cfg-my-callsign').value = $('cfg-callsign').value;
 });
-$('cfg-tx-host').addEventListener('input', () => { txHostAutoFilled = false; });
+$('cfg-my-callsign').addEventListener('input', () => { myCallAutoFilled = false; });
 
 async function saveSettings() {
   const statusEl = $('settings-status');
   $('settings-save-btn').disabled = true;
   statusEl.textContent = t('txt_saving');
+  const host = $('cfg-local-host').value.trim();
   const payload = {
     digi_callsign: $('cfg-callsign').value.trim(),
     digi_lat: $('cfg-lat').value ? parseFloat($('cfg-lat').value) : 0,
     digi_lon: $('cfg-lon').value ? parseFloat($('cfg-lon').value) : 0,
-    local_feed_enabled: $('cfg-local-enabled').checked,
-    local_feed_host: $('cfg-local-host').value.trim(),
+    // RX liga sozinho quando tem IP + porta preenchidos — sem checkbox pra
+    // esquecer de marcar (fonte de bug real: gente preenchia tudo e
+    // esquecia de marcar "ativar", achava que tava quebrado).
+    local_feed_enabled: true,
+    local_feed_host: host,
     local_feed_port: $('cfg-local-port').value || null,
     messaging_my_callsign: $('cfg-my-callsign').value.trim(),
     messaging_my_ssid: $('cfg-my-ssid').value || 0,
-    messaging_tx_host: $('cfg-tx-host').value.trim(),
+    // TX usa o mesmo IP do digi que o RX — um único campo de IP na tela.
+    messaging_tx_host: host,
     messaging_tx_port: $('cfg-tx-port').value || null,
     aprs_is_enabled: $('cfg-aprsis-enabled').checked,
-    aprs_is_filter: $('cfg-aprsis-filter').value.trim(),
+    aprs_is_filter: '',
   };
   try {
     const r = await fetch('/api/settings', {
@@ -768,6 +866,89 @@ async function saveSettings() {
     statusEl.innerHTML = `<span class="status-pending">${t('txt_conn_error')} ${e}</span>`;
   } finally {
     $('settings-save-btn').disabled = false;
+  }
+}
+
+function useMyLocation() {
+  const statusEl = $('detect-pos-status');
+  if (!navigator.geolocation) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_locate_fail')}</span>`;
+    return;
+  }
+  statusEl.innerHTML = `<span class="status-pending">${t('txt_locating')}</span>`;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      $('cfg-lat').value = pos.coords.latitude.toFixed(4);
+      $('cfg-lon').value = pos.coords.longitude.toFixed(4);
+      statusEl.innerHTML = `<span class="status-ok">${t('txt_located')}</span>`;
+    },
+    () => {
+      statusEl.innerHTML = `<span class="status-pending">${t('txt_locate_fail')}</span>`;
+    },
+    { timeout: 10000 }
+  );
+}
+
+async function detectPosition() {
+  const statusEl = $('detect-pos-status');
+  const callsign = $('cfg-callsign').value.trim();
+  const host = $('cfg-local-host').value.trim();
+  const port = $('cfg-local-port').value;
+  if (!callsign || !host || !port) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_detect_need_fields')}</span>`;
+    return;
+  }
+  $('detect-pos-btn').disabled = true;
+  statusEl.innerHTML = `<span class="status-pending">${t('txt_detecting')}</span>`;
+  try {
+    const r = await fetch('/api/detect_position', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ host, port, callsign })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      statusEl.innerHTML = `<span class="status-pending">${data.detail || t('txt_detect_fail')}</span>`;
+    } else {
+      $('cfg-lat').value = data.lat;
+      $('cfg-lon').value = data.lon;
+      statusEl.innerHTML = `<span class="status-ok">${t('txt_detected')}</span>`;
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_conn_error')} ${e}</span>`;
+  } finally {
+    $('detect-pos-btn').disabled = false;
+  }
+}
+
+let currentVersion = null;
+let githubRepo = null;
+async function loadAbout() {
+  const v = await jget('/api/version');
+  currentVersion = v.version;
+  githubRepo = v.github_repo;
+  $('about-version').textContent = `v${currentVersion}`;
+}
+
+async function checkForUpdates() {
+  const statusEl = $('update-status');
+  $('check-updates-btn').disabled = true;
+  statusEl.innerHTML = `<span class="status-pending">${t('txt_checking_updates')}</span>`;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${githubRepo}/releases/latest`);
+    if (!r.ok) throw new Error(`GitHub respondeu ${r.status}`);
+    const data = await r.json();
+    const latest = (data.tag_name || '').replace(/^v/, '');
+    if (latest && latest !== currentVersion) {
+      statusEl.innerHTML = `<span class="status-pending">${t('txt_update_available')} v${latest}</span> ` +
+        `<a href="https://marceloferreirachile.github.io/aprs-dashboard/" target="_blank" rel="noopener" class="action" style="display:inline-block; margin-left:8px; text-decoration:none;">${t('btn_download_update')}</a>`;
+    } else {
+      statusEl.innerHTML = `<span class="status-ok">${t('txt_up_to_date')}</span>`;
+    }
+  } catch (e) {
+    statusEl.innerHTML = `<span class="status-pending">${t('txt_conn_error')} ${e}</span>`;
+  } finally {
+    $('check-updates-btn').disabled = false;
   }
 }
 

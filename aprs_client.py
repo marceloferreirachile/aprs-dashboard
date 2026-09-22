@@ -318,6 +318,61 @@ class MessageSender:
         return msgid
 
 
+def detect_position(host, port, callsign, timeout=20):
+    """
+    Conecta rapidinho na porta KISS informada e escuta até achar um pacote
+    de POSIÇÃO transmitido pelo próprio `callsign` (o beacon que o digi
+    manda de si mesmo) — usado pelo botão "Detectar posição" da tela de
+    Configurações, pra preencher lat/lon sem o usuário ter que digitar.
+    Devolve {"lat", "lon", "source"} se achar, ou None se estourar o tempo
+    sem ver nenhum beacon de posição desse indicativo.
+    """
+    callsign = (callsign or "").upper().strip()
+    deadline = time.time() + timeout
+    buf = bytearray()
+    try:
+        with socket.create_connection((host, port), timeout=10) as sock:
+            sock.settimeout(2)
+            while time.time() < deadline:
+                try:
+                    chunk = sock.recv(4096)
+                except socket.timeout:
+                    continue
+                if not chunk:
+                    break
+                buf += chunk
+                while FEND in buf:
+                    first = buf.find(FEND)
+                    second = buf.find(FEND, first + 1)
+                    if second == -1:
+                        break
+                    raw = bytes(buf[first + 1:second])
+                    del buf[:second + 1]
+                    if len(raw) < 2:
+                        continue
+                    unescaped = kiss_unescape(raw)
+                    if (unescaped[0] & 0x0F) != 0x00:
+                        continue
+                    decoded = decode_ax25_to_tnc2(unescaped[1:])
+                    if not decoded:
+                        continue
+                    tnc2_line, _ = decoded
+                    try:
+                        packet = aprslib.parse(tnc2_line)
+                    except (aprslib.ParseError, aprslib.UnknownFormat):
+                        continue
+                    src = (packet.get("from") or "").upper()
+                    if callsign and src != callsign:
+                        continue
+                    lat = packet.get("latitude")
+                    lon = packet.get("longitude")
+                    if lat is not None and lon is not None:
+                        return {"lat": lat, "lon": lon, "source": src}
+    except OSError as e:
+        return {"error": str(e)}
+    return None
+
+
 class AprsFeeds:
     def __init__(self, config):
         self.config = config

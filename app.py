@@ -14,6 +14,12 @@ from aprs_client import AprsFeeds
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
 
+# Bump isso a cada release (tem que bater com a tag "vX.Y.Z" no GitHub) — é o
+# que a aba "Sobre" usa pra comparar com a última Release e avisar de
+# atualização disponível.
+APP_VERSION = "1.0.0"
+GITHUB_REPO = "marceloferreirachile/aprs-dashboard"
+
 # BASE_DIR: onde ficam os arquivos empacotados (templates, config.yaml.example)
 # — read-only quando rodando como executável (PyInstaller).
 # DATA_DIR: onde gravamos config.yaml e o banco — precisa ser gravável, então
@@ -79,6 +85,11 @@ def api_config():
     }
 
 
+@app.get("/api/version")
+def api_version():
+    return {"version": APP_VERSION, "github_repo": GITHUB_REPO}
+
+
 def _settings_view(cfg):
     """Só os campos editáveis pela tela de Configurações (sem caminho de banco etc)."""
     lf = cfg.get("local_feed", {}) or {}
@@ -104,6 +115,36 @@ def _settings_view(cfg):
 @app.get("/api/settings")
 def api_get_settings():
     return _settings_view(config)
+
+
+@app.post("/api/detect_position")
+def api_detect_position(payload: dict = Body(...)):
+    """
+    Conecta rapidinho na porta KISS informada e tenta achar sozinho o
+    beacon de posição do próprio digi, pra preencher lat/lon sem o usuário
+    ter que descobrir e digitar manualmente.
+    """
+    from aprs_client import detect_position
+
+    host = (payload.get("host") or "").strip()
+    callsign = (payload.get("callsign") or "").strip().upper()
+    if not host or not callsign:
+        raise HTTPException(400, "Informe o indicativo e o IP do digi.")
+    try:
+        port = int(payload.get("port"))
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Porta inválida.")
+
+    result = detect_position(host, port, callsign, timeout=20)
+    if not result:
+        raise HTTPException(
+            408,
+            "Não recebi nenhum pacote de posição desse indicativo em 20s. "
+            "O digi pode não estar enviando beacon próprio — preencha manualmente.",
+        )
+    if "error" in result:
+        raise HTTPException(502, f"Erro conectando no digi: {result['error']}")
+    return result
 
 
 @app.post("/api/settings")
@@ -164,6 +205,19 @@ def api_save_settings(payload: dict = Body(...)):
     log.info("Configurações salvas e feeds reiniciados para %s", config["digi"]["callsign"])
 
     return {"ok": True, "settings": _settings_view(config)}
+
+
+@app.get("/api/last_heard")
+def api_last_heard(
+    direction: str | None = Query(None),
+    page: int = Query(1, ge=1, le=10),
+    page_size: int = Query(50, ge=1, le=50),
+):
+    """Pacotes mais recentes, paginado — igual ao painel LAST HEARD do firmware do digi."""
+    total = db.recent_count(direction=direction)
+    rows = db.recent(direction=direction, page=page, page_size=page_size)
+    pages = max(1, min(10, -(-total // page_size)))
+    return {"rows": rows, "page": page, "page_size": page_size, "total": total, "pages": pages}
 
 
 @app.get("/api/stats/summary")
