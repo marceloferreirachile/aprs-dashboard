@@ -25,12 +25,17 @@ in the system tray / menu bar. Right-click its icon there to reopen the
 dashboard or quit. **Linux:** it runs in the terminal window you opened it
 from; leave that open, and close it (or Ctrl+C) to stop the server.
 
-**macOS note:** releases are signed with a Developer ID certificate and
-notarized by Apple, so the app should just open normally the first time
-(you may see a one-time "downloaded from the internet, are you sure?"
-prompt — that's normal, just click Open). If Gatekeeper still blocks it for
-any reason, right-click the app → **Open**, or go to **System Settings →
-Privacy & Security**, scroll down, and click **"Open Anyway"**.
+**macOS:** releases are code-signed with an Apple Developer ID certificate
+and notarized by Apple, so the app just opens normally the first time — no
+"unidentified developer" block. You may see a one-time "downloaded from the
+internet, are you sure?" prompt; that's normal, just click **Open**. If
+Gatekeeper still blocks it for any reason, right-click the app → **Open**,
+or go to **System Settings → Privacy & Security**, scroll down, and click
+**"Open Anyway"**.
+
+**Windows:** the app isn't code-signed yet (no Authenticode certificate),
+so SmartScreen will show a "Windows protected your PC" warning the first
+time. This is expected — click **"More info"** → **"Run anyway"**.
 
 ## How it works
 
