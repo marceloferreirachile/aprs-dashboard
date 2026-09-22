@@ -17,7 +17,7 @@ log = logging.getLogger("app")
 # Bump isso a cada release (tem que bater com a tag "vX.Y.Z" no GitHub) — é o
 # que a aba "Sobre" usa pra comparar com a última Release e avisar de
 # atualização disponível.
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 GITHUB_REPO = "marceloferreirachile/aprs-dashboard"
 
 # BASE_DIR: onde ficam os arquivos empacotados (templates, config.yaml.example)
@@ -333,7 +333,8 @@ def api_send_message(payload: dict = Body(...)):
     except Exception as e:
         raise HTTPException(502, f"Falha ao enviar: {e}")
 
-    db.insert_message(to_station=to_call, from_station=sender.my_callsign, text=text, msgid=msgid)
+    from_display = f"{sender.my_callsign}-{sender.my_ssid}" if sender.my_ssid else sender.my_callsign
+    db.insert_message(to_station=to_call, from_station=from_display, text=text, msgid=msgid)
     return {"ok": True, "to": to_call, "text": text, "msgid": msgid}
 
 
