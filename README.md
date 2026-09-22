@@ -20,6 +20,17 @@ The app opens a browser window at `http://localhost:8080` and everything —
 your digi's IP address, ports, callsign — is configured from the
 **Settings** tab inside the dashboard itself.
 
+**Windows and macOS:** no terminal window stays open — the app runs quietly
+in the system tray / menu bar. Right-click its icon there to reopen the
+dashboard or quit. **Linux:** it runs in the terminal window you opened it
+from; leave that open, and close it (or Ctrl+C) to stop the server.
+
+**macOS note:** since the app isn't signed with a paid Apple developer
+certificate, Gatekeeper will block it the first time. Right-click the
+unzipped file → **Open**. If it's still blocked, go to **System Settings →
+Privacy & Security**, scroll down, and click **"Open Anyway"** next to the
+message about the file, then try opening it again.
+
 ## How it works
 
 The dashboard uses **three separate TCP/IP connections**, because each one

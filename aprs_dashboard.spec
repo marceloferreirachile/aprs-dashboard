@@ -1,15 +1,39 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec — gera um executável único (Windows/Mac/Linux, rode este
-# arquivo NA plataforma alvo; PyInstaller não faz cross-compile).
+# PyInstaller spec — builds a native executable for Windows/macOS/Linux (run
+# this file ON the target platform; PyInstaller doesn't cross-compile).
 #
 #   pip install pyinstaller
 #   pyinstaller aprs_dashboard.spec
 #
-# Resultado em dist/aprs_dashboard (ou aprs_dashboard.exe no Windows).
+# Windows/macOS: runs hidden in the background with a system tray / menu bar
+# icon (see launcher.py) — no console window. On macOS the result is a proper
+# aprs_dashboard.app bundle. Linux still runs in a terminal window, since
+# tray icon support varies too much across desktop environments.
 
 import sys
 
 block_cipher = None
+
+is_mac = sys.platform == 'darwin'
+is_win = sys.platform == 'win32'
+has_tray = is_mac or is_win
+
+hiddenimports = [
+    'uvicorn.logging',
+    'uvicorn.loops',
+    'uvicorn.loops.auto',
+    'uvicorn.protocols',
+    'uvicorn.protocols.http',
+    'uvicorn.protocols.http.auto',
+    'uvicorn.protocols.websockets',
+    'uvicorn.protocols.websockets.auto',
+    'uvicorn.lifespan',
+    'uvicorn.lifespan.on',
+    'aprslib',
+]
+if has_tray:
+    hiddenimports += ['pystray', 'PIL._tkinter_finder']
+    hiddenimports += ['pystray._win32'] if is_win else ['pystray._darwin']
 
 a = Analysis(
     ['launcher.py'],
@@ -19,19 +43,7 @@ a = Analysis(
         ('templates', 'templates'),
         ('config.yaml.example', '.'),
     ],
-    hiddenimports=[
-        'uvicorn.logging',
-        'uvicorn.loops',
-        'uvicorn.loops.auto',
-        'uvicorn.protocols',
-        'uvicorn.protocols.http',
-        'uvicorn.protocols.http.auto',
-        'uvicorn.protocols.websockets',
-        'uvicorn.protocols.websockets.auto',
-        'uvicorn.lifespan',
-        'uvicorn.lifespan.on',
-        'aprslib',
-    ],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -56,7 +68,7 @@ exe = EXE(
     upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=not has_tray,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -64,3 +76,18 @@ exe = EXE(
     entitlements_file=None,
     icon=None,
 )
+
+if is_mac:
+    # A real .app bundle (rather than a bare binary) so double-clicking it
+    # works from Finder, and so LSUIElement hides it from the Dock — it only
+    # shows up as the menu bar icon from launcher.py.
+    app = BUNDLE(
+        exe,
+        name='aprs_dashboard.app',
+        icon=None,
+        bundle_identifier='com.lu6jmf.aprsdashboard',
+        info_plist={
+            'LSUIElement': True,
+            'NSHighResolutionCapable': True,
+        },
+    )

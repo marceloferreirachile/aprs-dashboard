@@ -23,7 +23,7 @@ jobs:
             package: false
           - os: macos-latest
             asset_name: aprs_dashboard-macos.zip
-            build_path: dist/aprs_dashboard
+            build_path: dist/aprs_dashboard.app
             package: true
           - os: ubuntu-latest
             asset_name: aprs_dashboard-linux.zip
@@ -51,14 +51,20 @@ jobs:
         run: |
           mkdir -p out
           if [ "${{ matrix.package }}" = "true" ]; then
-            # GitHub Releases doesn't preserve the Unix executable bit on raw
-            # file downloads, so macOS/Linux binaries need to travel inside a
-            # zip (which does preserve it) or double-clicking them just opens
-            # as a generic document instead of running.
-            chmod +x "${{ matrix.build_path }}"
+            # GitHub Releases doesn't preserve Unix permissions on raw file
+            # downloads, so macOS/Linux need to travel inside a zip (which
+            # does preserve them) or double-clicking/running them breaks.
             dir=$(dirname "${{ matrix.build_path }}")
             file=$(basename "${{ matrix.build_path }}")
-            (cd "$dir" && zip "$OLDPWD/out/${{ matrix.asset_name }}" "$file")
+            if [ -d "${{ matrix.build_path }}" ]; then
+              # macOS .app bundle: fix the executable bit inside it, then
+              # zip the whole bundle recursively so it stays a bundle.
+              chmod +x "${{ matrix.build_path }}/Contents/MacOS/"* 2>/dev/null || true
+              (cd "$dir" && zip -r "$OLDPWD/out/${{ matrix.asset_name }}" "$file")
+            else
+              chmod +x "${{ matrix.build_path }}"
+              (cd "$dir" && zip "$OLDPWD/out/${{ matrix.asset_name }}" "$file")
+            fi
           else
             cp "${{ matrix.build_path }}" "out/${{ matrix.asset_name }}"
           fi
