@@ -307,7 +307,7 @@
 
     <div class="panel">
       <h2 data-i18n="bln_title">Boletins automáticos (Alerts + News)</h2>
-      <p class="hint" data-i18n="bln_hint">Repetem sozinhos no intervalo escolhido. Alerts (BLN1-4) mandam sempre no mesmo intervalo; News (NEWS5-9) começam logo e depois vão espaçando cada vez mais. Texto realmente transmitido é limitado a ~50 caracteres — acima disso pode sair cortado no ar.</p>
+      <p class="hint" data-i18n="bln_hint">Repetem sozinhos no intervalo escolhido. Alerts (BLN1-4) mandam sempre no mesmo intervalo; News (NWS5-9) começam logo e depois vão espaçando cada vez mais. Texto realmente transmitido é limitado a ~50 caracteres — acima disso pode sair cortado no ar.</p>
       <table>
         <thead><tr>
           <th data-i18n="th_bln_slot">Slot</th>
@@ -424,8 +424,8 @@
         <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
         <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
         <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
-        <tr><td>Version:</td><td>v1.1.1</td></tr>
-        <tr><td>Changes:</td><td>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duracao configuraveis) e Objects (4 slots, posicao fixa ou minha localizacao)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)<br>- Seletor visual de simbolo APRS nos Objects, com os icones reais do conjunto aprs.fi (tabela primaria e secundaria)<br>- Corrigido: mensagem de texto recebida por RF de outra estacao agora aparece na lista (antes so registrava o que voce mesmo enviava)</td></tr>
+        <tr><td>Version:</td><td>v1.1.2</td></tr>
+        <tr><td>Changes:</td><td>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duracao configuraveis) e Objects (4 slots, posicao fixa ou minha localizacao)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)<br>- Seletor visual de simbolo APRS nos Objects, com os icones reais do conjunto aprs.fi (tabela primaria e secundaria)<br>- Corrigido: mensagem de texto recebida por RF de outra estacao agora aparece na lista (antes so registrava o que voce mesmo enviava)<br>- Simplificado: campo "Frequencia de envio" removido dos Objects, ficou so o Intervalo (15/30/60 min)</td></tr>
       </table>
     </div>
   </section>
@@ -494,7 +494,7 @@ const TRANSLATIONS = {
     settings_aprsis_radius: "Server Filter (raio, km)",
     settings_aprsis_radius_hint: "Igual ao Server Filter da aba IGATE do digi, mas é a conexão do dashboard com a rede — independente da dele. Padrão: 20km.",
     bln_title: "Boletins automáticos (Alerts + News)",
-    bln_hint: "Repetem sozinhos no intervalo escolhido. Alerts (BLN1-4) mandam sempre no mesmo intervalo; News (NEWS5-9) começam logo e depois vão espaçando cada vez mais. Texto realmente transmitido é limitado a ~50 caracteres — acima disso pode sair cortado no ar.",
+    bln_hint: "Repetem sozinhos no intervalo escolhido. Alerts (BLN1-4) mandam sempre no mesmo intervalo; News (NWS5-9) começam logo e depois vão espaçando cada vez mais. Texto realmente transmitido é limitado a ~50 caracteres — acima disso pode sair cortado no ar.",
     th_bln_slot: "Slot", th_bln_active: "Ativo", th_bln_text: "Texto", th_bln_interval: "Intervalo",
     th_bln_activefor: "Ativo por", th_bln_limit: "Limite envios", th_bln_sent: "Enviados",
     objects_title: "Objects (posições/marcadores independentes)",
@@ -906,7 +906,7 @@ const BLN_INTERVAL_OPTS = [300, 600, 900, 1800, 3600];
 const ACTIVE_FOR_OPTS = [24, 36, 48, 72];
 const OBJ_INTERVAL_OPTS = [900, 1800, 3600];
 
-function blnLabel(bi) { return bi < 4 ? `BLN${bi + 1}` : `NEWS${bi + 1}`; }
+function blnLabel(bi) { return bi < 4 ? `BLN${bi + 1}` : `NWS${bi + 1}`; }
 function minLabel(sec) { return `${sec / 60} min`; }
 function hourLabel(h) { return `${h}h`; }
 
@@ -1059,13 +1059,6 @@ function renderObjectsList() {
           <div class="char-count ${over ? 'over' : ''}" id="obj-count-${oi}">${text.length} / 43</div>
         </div>
         <div class="field">
-          <label data-i18n="obj_mode">Frequência de envio</label>
-          <select id="obj-mode-${oi}" onchange="toggleObjMode(${oi})">
-            <option value="0" ${Number(slot.mode) === 0 ? 'selected' : ''} data-i18n="obj_mode_interval">Intervalo escolhido</option>
-            <option value="1" ${Number(slot.mode) === 1 ? 'selected' : ''} data-i18n="obj_mode_fixed">Fixo (15 min)</option>
-          </select>
-        </div>
-        <div class="field">
           <label data-i18n="obj_interval">Intervalo</label>
           ${selectHtml(`obj-interval-${oi}`, OBJ_INTERVAL_OPTS, slot.interval || 900, minLabel)}
         </div>
@@ -1081,7 +1074,7 @@ function renderObjectsList() {
     </div>`;
   }).join('');
   $('objects-list').innerHTML = cards;
-  msgTabData.objects.forEach((slot, oi) => { toggleObjMode(oi); toggleObjPermanent(oi); });
+  msgTabData.objects.forEach((slot, oi) => { toggleObjPermanent(oi); });
   applyTranslations();
 }
 
@@ -1090,10 +1083,6 @@ function updateObjCharCount(oi) {
   const el = $(`obj-count-${oi}`);
   el.textContent = `${len} / 43`;
   el.classList.toggle('over', len > 43);
-}
-
-function toggleObjMode(oi) {
-  $(`obj-interval-${oi}`).disabled = ($(`obj-mode-${oi}`).value === '1');
 }
 
 function toggleObjPermanent(oi) {
@@ -1129,7 +1118,7 @@ function collectMsgTabPayload() {
       table: $(`obj-table-${oi}`).value || '/',
       symbol: $(`obj-symbol-${oi}`).value || 'r',
       text: $(`obj-text-${oi}`).value,
-      mode: parseInt($(`obj-mode-${oi}`).value, 10),
+      mode: 0,
       interval: parseInt($(`obj-interval-${oi}`).value, 10),
       limit: parseInt($(`obj-limit-${oi}`).value || '0', 10),
       active_for: parseInt($(`obj-activefor-${oi}`).value, 10),

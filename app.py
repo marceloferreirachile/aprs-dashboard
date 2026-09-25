@@ -17,7 +17,7 @@ log = logging.getLogger("app")
 # Bump isso a cada release (tem que bater com a tag "vX.Y.Z" no GitHub) — é o
 # que a aba "Sobre" usa pra comparar com a última Release e avisar de
 # atualização disponível.
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.1.2"
 GITHUB_REPO = "marceloferreirachile/aprs-dashboard"
 
 # BASE_DIR: onde ficam os arquivos empacotados (templates, config.yaml.example)
