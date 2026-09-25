@@ -416,16 +416,16 @@
       <span id="update-status" style="margin-left:10px; font-size:13px;"></span>
     </div>
     <div class="about-box">
-      <div class="about-title">Developer/Support Information</div>
+      <div class="about-title" data-i18n="about_dev_title">Developer/Support Information</div>
       <table>
-        <tr><td>Author:</td><td>Marcelo Ferreira</td></tr>
-        <tr><td>Callsign:</td><td>LU6JMF-10</td></tr>
-        <tr><td>Country:</td><td>Concepcion del Uruguay, Entre Rios, Argentina</td></tr>
-        <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
-        <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
-        <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
-        <tr><td>Version:</td><td>v1.1.2</td></tr>
-        <tr><td>Changes:</td><td>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duracao configuraveis) e Objects (4 slots, posicao fixa ou minha localizacao)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)<br>- Seletor visual de simbolo APRS nos Objects, com os icones reais do conjunto aprs.fi (tabela primaria e secundaria)<br>- Corrigido: mensagem de texto recebida por RF de outra estacao agora aparece na lista (antes so registrava o que voce mesmo enviava)<br>- Simplificado: campo "Frequencia de envio" removido dos Objects, ficou so o Intervalo (15/30/60 min)</td></tr>
+        <tr><td data-i18n="about_author">Author:</td><td>Marcelo Ferreira</td></tr>
+        <tr><td data-i18n="about_callsign">Callsign:</td><td>LU6JMF-10</td></tr>
+        <tr><td data-i18n="about_country">Country:</td><td>Concepcion del Uruguay, Entre Rios, Argentina</td></tr>
+        <tr><td data-i18n="about_github">Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
+        <tr><td data-i18n="about_whatsapp">WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
+        <tr><td data-i18n="about_donate">Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
+        <tr><td data-i18n="about_version_label">Version:</td><td>v1.1.3</td></tr>
+        <tr><td data-i18n="about_changes_label">Changes:</td><td data-i18n-html="about_changes_html"></td></tr>
       </table>
     </div>
   </section>
@@ -463,7 +463,7 @@ const TRANSLATIONS = {
     messages_text_ph: "Texto da mensagem", btn_send: "Enviar", messages_sent_title: "Mensagens (enviadas e recebidas)",
     settings_title: "Configurações do seu digi",
     settings_hint: "Cada pessoa usa um equipamento diferente — preencha o indicativo e o IP do SEU digipeater na sua rede local (as portas já vêm prontas). Nada aqui é compartilhado, fica só no seu computador.",
-    settings_section_digi: "Seu digipeater", settings_callsign: "Indicativo do digi",
+    settings_callsign: "Indicativo do digi",
     settings_lat: "Latitude", settings_lon: "Longitude",
     settings_rx_host: "IP do digi (rede local)", settings_rx_port: "Porta TCP KISS (RX)",
     settings_section_tx: "Mensagens (opcional)", settings_my_callsign: "Seu indicativo (remetente)",
@@ -501,10 +501,14 @@ const TRANSLATIONS = {
     objects_hint: "Manda um Object Report do jeito que você configurar — não precisa ter relação com a posição do seu digi (pode marcar um ponto de encontro, um relay temporário, um alerta de área, etc.).",
     obj_active: "Ativo", obj_permanent: "Permanente (nunca expira)", obj_sent: "Enviados:",
     obj_name: "Nome (até 9 car.)", obj_lat: "Latitude", obj_lon: "Longitude",
-    obj_table: "Tabela (1 car.)", obj_symbol: "Símbolo", obj_text: "Comentário (até 43 car.)",
-    obj_mode: "Frequência de envio", obj_mode_interval: "Intervalo escolhido", obj_mode_fixed: "Fixo (15 min)",
+    obj_symbol: "Símbolo", obj_text: "Comentário (até 43 car.)",
     obj_interval: "Intervalo", obj_activefor: "Ativo por", obj_limit: "Limite envios",
     btn_choose_symbol: "Escolher símbolo…", tbl_primary: "Tabela primária (/)", tbl_secondary: "Tabela secundária (\\)",
+    about_dev_title: "Informações do Desenvolvedor/Suporte",
+    about_author: "Autor:", about_callsign: "Indicativo:", about_country: "País:",
+    about_github: "Github:", about_whatsapp: "WhatsApp:", about_donate: "Doação:",
+    about_version_label: "Versão:", about_changes_label: "Mudanças:",
+    about_changes_html: "- Corrigido: a aba Sobre (versão/mudanças) ficava sempre em português, independente do idioma escolhido — agora traduz certinho pros três idiomas (PT/ES/EN)<br>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duração configuráveis) e Objects (4 slots, posição fixa ou minha localização)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)<br>- Seletor visual de símbolo APRS nos Objects, com os ícones reais do conjunto aprs.fi (tabela primária e secundária)<br>- Corrigido: mensagem de texto recebida por RF de outra estação agora aparece na lista (antes só registrava o que você mesmo enviava)<br>- Simplificado: campo \"Frequência de envio\" removido dos Objects, ficou só o Intervalo (15/30/60 min)",
   },
   es: {
     app_title: "APRS Digipeater Dashboard",
@@ -530,7 +534,7 @@ const TRANSLATIONS = {
     messages_text_ph: "Texto del mensaje", btn_send: "Enviar", messages_sent_title: "Mensajes (enviados y recibidos)",
     settings_title: "Configuración de tu digi",
     settings_hint: "Cada persona usa un equipo diferente — completa la IP y los puertos de TU digipeater en tu red local. Nada de esto se comparte, queda solo en tu computadora.",
-    settings_section_digi: "Tu digipeater", settings_callsign: "Indicativo del digi",
+    settings_callsign: "Indicativo del digi",
     settings_lat: "Latitud", settings_lon: "Longitud",
     settings_rx_host: "IP del digi (red local)", settings_rx_port: "Puerto TCP KISS (RX)",
     settings_section_tx: "Mensajes (opcional)", settings_my_callsign: "Tu indicativo (remitente)",
@@ -568,10 +572,14 @@ const TRANSLATIONS = {
     objects_hint: "Envía un Object Report como vos lo configures — no necesita tener relación con la posición de tu digi (podés marcar un punto de encuentro, un relay temporal, una alerta de zona, etc.).",
     obj_active: "Activo", obj_permanent: "Permanente (nunca expira)", obj_sent: "Enviados:",
     obj_name: "Nombre (hasta 9 car.)", obj_lat: "Latitud", obj_lon: "Longitud",
-    obj_table: "Tabla (1 car.)", obj_symbol: "Símbolo", obj_text: "Comentario (hasta 43 car.)",
-    obj_mode: "Frecuencia de envío", obj_mode_interval: "Intervalo elegido", obj_mode_fixed: "Fijo (15 min)",
+    obj_symbol: "Símbolo", obj_text: "Comentario (hasta 43 car.)",
     obj_interval: "Intervalo", obj_activefor: "Activo por", obj_limit: "Límite de envíos",
     btn_choose_symbol: "Elegir símbolo…", tbl_primary: "Tabla primaria (/)", tbl_secondary: "Tabla secundaria (\\)",
+    about_dev_title: "Información del Desarrollador/Soporte",
+    about_author: "Autor:", about_callsign: "Indicativo:", about_country: "País:",
+    about_github: "Github:", about_whatsapp: "WhatsApp:", about_donate: "Donación:",
+    about_version_label: "Versión:", about_changes_label: "Cambios:",
+    about_changes_html: "- Corregido: la pestaña Sobre (versión/cambios) quedaba siempre en portugués, sin importar el idioma elegido — ahora traduce bien a los tres idiomas (PT/ES/EN)<br>- Nueva pestaña Mensajes: BLN Alerts/News (9 slots, intervalo/límite/duración configurables) y Objects (4 slots, posición fija o mi ubicación)<br>- Contador de caracteres en tiempo real en los campos de texto (BLN/Objects)<br>- Selector visual de símbolo APRS en los Objects, con los íconos reales del set aprs.fi (tabla primaria y secundaria)<br>- Corregido: el mensaje de texto recibido por RF de otra estación ahora aparece en la lista (antes solo registraba lo que vos mismo enviabas)<br>- Simplificado: se eliminó el campo \"Frecuencia de envío\" de los Objects, quedó solo el Intervalo (15/30/60 min)",
   },
   en: {
     app_title: "APRS Digipeater Dashboard",
@@ -597,7 +605,7 @@ const TRANSLATIONS = {
     messages_text_ph: "Message text", btn_send: "Send", messages_sent_title: "Messages (sent and received)",
     settings_title: "Your digi's settings",
     settings_hint: "Everyone uses different hardware — fill in the IP and ports of YOUR digipeater on your local network. Nothing here is shared, it stays on your computer only.",
-    settings_section_digi: "Your digipeater", settings_callsign: "Digi callsign",
+    settings_callsign: "Digi callsign",
     settings_lat: "Latitude", settings_lon: "Longitude",
     settings_rx_host: "Digi IP (local network)", settings_rx_port: "TCP KISS port (RX)",
     settings_section_tx: "Messages (optional)", settings_my_callsign: "Your callsign (sender)",
@@ -635,10 +643,14 @@ const TRANSLATIONS = {
     objects_hint: "Sends an Object Report the way you set it up — it doesn't need any relation to your digi's own position (mark a meeting point, a temporary relay, an area alert, etc).",
     obj_active: "Active", obj_permanent: "Permanent (never expires)", obj_sent: "Sent:",
     obj_name: "Name (up to 9 chars)", obj_lat: "Latitude", obj_lon: "Longitude",
-    obj_table: "Table (1 char)", obj_symbol: "Symbol", obj_text: "Comment (up to 43 chars)",
-    obj_mode: "Send frequency", obj_mode_interval: "Chosen interval", obj_mode_fixed: "Fixed (15 min)",
+    obj_symbol: "Symbol", obj_text: "Comment (up to 43 chars)",
     obj_interval: "Interval", obj_activefor: "Active for", obj_limit: "Send limit",
     btn_choose_symbol: "Choose symbol…", tbl_primary: "Primary table (/)", tbl_secondary: "Secondary table (\\)",
+    about_dev_title: "Developer/Support Information",
+    about_author: "Author:", about_callsign: "Callsign:", about_country: "Country:",
+    about_github: "Github:", about_whatsapp: "WhatsApp:", about_donate: "Donate:",
+    about_version_label: "Version:", about_changes_label: "Changes:",
+    about_changes_html: "- Fixed: the About tab (version/changes) always showed in Portuguese regardless of the chosen language — now translates properly into all three languages (PT/ES/EN)<br>- New Messages tab: BLN Alerts/News (9 slots, configurable interval/limit/duration) and Objects (4 slots, fixed position or my location)<br>- Live character counter on text fields (BLN/Objects)<br>- Visual APRS symbol picker on Objects, using the real aprs.fi icon set (primary and secondary table)<br>- Fixed: a text message received via RF from another station now shows up in the list (previously only tracked what you sent yourself)<br>- Simplified: the \"Send frequency\" field was removed from Objects, leaving just the Interval (15/30/60 min)",
   },
 };
 
@@ -652,6 +664,7 @@ function applyTranslations() {
   document.documentElement.lang = currentLang === 'pt' ? 'pt-BR' : (currentLang === 'es' ? 'es-419' : 'en-US');
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.querySelectorAll('.lang-switch button').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
   updateCharCount();
 }
