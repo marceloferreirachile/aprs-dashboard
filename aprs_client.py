@@ -473,6 +473,11 @@ class AprsFeeds:
             msgid = str(packet.get("msgNo") or "").strip()
             if is_ack and to_call and to_call.split("-")[0] == self.my_callsign.split("-")[0] and msgid:
                 db.mark_message_acked(acker_station=src, msgid=msgid)
+            elif not is_ack and to_call and to_call.split("-")[0] == self.my_callsign.split("-")[0]:
+                # Mensagem de texto de verdade (não ack) endereçada a nós —
+                # registra como recebida, senão nunca aparecia na lista.
+                text = packet.get("message_text", "")
+                db.insert_received_message(from_station=src, to_station=to_call, text=text, msgid=msgid)
 
         via = None
         if direction == "inbound":

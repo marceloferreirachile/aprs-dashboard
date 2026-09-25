@@ -135,6 +135,33 @@ def insert_message(to_station, from_station, text, msgid, ts=None):
         return cur.lastrowid
 
 
+def insert_received_message(from_station, to_station, text, msgid, ts=None):
+    """
+    Mensagem de texto (não-ack) recebida por RF endereçada a nós. Sem isso,
+    o dashboard só registrava mensagens que NÓS enviamos (e seus acks) —
+    uma mensagem chegando de outra estação nunca aparecia na lista.
+    Dedup simples por (from_station, msgid) pra não duplicar em cada retry
+    do remetente.
+    """
+    ts = ts or now_iso()
+    with cursor() as cur:
+        if msgid:
+            cur.execute(
+                "SELECT id FROM messages WHERE from_station = ? AND msgid = ? AND status = 'recebida'",
+                (from_station, msgid),
+            )
+            if cur.fetchone():
+                return None
+        cur.execute(
+            """
+            INSERT INTO messages (ts_sent, to_station, from_station, text, msgid, status)
+            VALUES (?, ?, ?, ?, ?, 'recebida')
+            """,
+            (ts, to_station, from_station, text, msgid or ""),
+        )
+        return cur.lastrowid
+
+
 def mark_message_acked(acker_station, msgid, ts=None):
     """
     Chamado quando um pacote 'ackNNN' chega de volta. 'acker_station' é quem

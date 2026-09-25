@@ -104,6 +104,22 @@
   .about-box tr:last-child td { border-bottom: none; }
   .about-box a { color: var(--accent); text-decoration: none; }
   .about-box a:hover { text-decoration: underline; }
+
+  /* APRS symbol picker (ícones aprs.fi, sprite hessu/aprs-symbols) */
+  .aprs-icon {
+    display: inline-block; width: 24px; height: 24px; background-repeat: no-repeat;
+    border-radius: 4px; vertical-align: middle;
+  }
+  .aprs-icon.t0 { background-image: url('https://cdn.jsdelivr.net/gh/hessu/aprs-symbols@master/png/aprs-symbols-24-0.png'); }
+  .aprs-icon.t1 { background-image: url('https://cdn.jsdelivr.net/gh/hessu/aprs-symbols@master/png/aprs-symbols-24-1.png'); }
+  .aprs-icon.pick { cursor: pointer; }
+  .aprs-icon.pick:hover { outline: 2px solid var(--accent); }
+  .aprs-symbol-picker { display: none; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--panel2); }
+  .aprs-symbol-picker.open { display: block; }
+  .aprs-symbol-grid { display: flex; flex-wrap: wrap; gap: 3px; max-height: 220px; overflow-y: auto; margin-top: 8px; }
+  .aprs-table-tabs { display: flex; gap: 6px; }
+  .aprs-table-tabs button { background: var(--panel); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+  .aprs-table-tabs button.active { background: var(--accent); color: #06111f; border-color: var(--accent); font-weight: 600; }
   .settings-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
   @media (max-width: 700px) { .settings-form { grid-template-columns: 1fr; } }
   .settings-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
@@ -279,7 +295,7 @@
       <div id="m-status" style="margin-top:8px; font-size:13px;"></div>
     </div>
     <div class="panel">
-      <h2 data-i18n="messages_sent_title">Mensagens enviadas</h2>
+      <h2 data-i18n="messages_sent_title">Mensagens (enviadas e recebidas)</h2>
       <table>
         <thead><tr>
           <th data-i18n="th_when">Quando</th><th data-i18n="th_from">De</th><th data-i18n="th_to">Para</th>
@@ -408,8 +424,8 @@
         <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
         <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
         <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
-        <tr><td>Version:</td><td>v1.1.0</td></tr>
-        <tr><td>Changes:</td><td>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duracao configuraveis) e Objects (4 slots, posicao fixa ou minha localizacao)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)</td></tr>
+        <tr><td>Version:</td><td>v1.1.1</td></tr>
+        <tr><td>Changes:</td><td>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duracao configuraveis) e Objects (4 slots, posicao fixa ou minha localizacao)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)<br>- Seletor visual de simbolo APRS nos Objects, com os icones reais do conjunto aprs.fi (tabela primaria e secundaria)<br>- Corrigido: mensagem de texto recebida por RF de outra estacao agora aparece na lista (antes so registrava o que voce mesmo enviava)</td></tr>
       </table>
     </div>
   </section>
@@ -444,7 +460,7 @@ const TRANSLATIONS = {
     opt_via_direto: "Direto", opt_via_repetido: "Repetido (via digipeater)", opt_via_rede: "Rede (APRS-IS)",
     btn_search: "Buscar", history_title: "Histórico por data",
     messages_send_title: "Mandar mensagem APRS", messages_to_ph: "Indicativo destino (ex: LU5JB-9)",
-    messages_text_ph: "Texto da mensagem", btn_send: "Enviar", messages_sent_title: "Mensagens enviadas",
+    messages_text_ph: "Texto da mensagem", btn_send: "Enviar", messages_sent_title: "Mensagens (enviadas e recebidas)",
     settings_title: "Configurações do seu digi",
     settings_hint: "Cada pessoa usa um equipamento diferente — preencha o indicativo e o IP do SEU digipeater na sua rede local (as portas já vêm prontas). Nada aqui é compartilhado, fica só no seu computador.",
     settings_section_digi: "Seu digipeater", settings_callsign: "Indicativo do digi",
@@ -485,9 +501,10 @@ const TRANSLATIONS = {
     objects_hint: "Manda um Object Report do jeito que você configurar — não precisa ter relação com a posição do seu digi (pode marcar um ponto de encontro, um relay temporário, um alerta de área, etc.).",
     obj_active: "Ativo", obj_permanent: "Permanente (nunca expira)", obj_sent: "Enviados:",
     obj_name: "Nome (até 9 car.)", obj_lat: "Latitude", obj_lon: "Longitude",
-    obj_table: "Tabela (1 car.)", obj_symbol: "Símbolo (1 car.)", obj_text: "Comentário (até 43 car.)",
+    obj_table: "Tabela (1 car.)", obj_symbol: "Símbolo", obj_text: "Comentário (até 43 car.)",
     obj_mode: "Frequência de envio", obj_mode_interval: "Intervalo escolhido", obj_mode_fixed: "Fixo (15 min)",
     obj_interval: "Intervalo", obj_activefor: "Ativo por", obj_limit: "Limite envios",
+    btn_choose_symbol: "Escolher símbolo…", tbl_primary: "Tabela primária (/)", tbl_secondary: "Tabela secundária (\\)",
   },
   es: {
     app_title: "APRS Digipeater Dashboard",
@@ -510,7 +527,7 @@ const TRANSLATIONS = {
     opt_via_direto: "Directo", opt_via_repetido: "Repetido (vía digipeater)", opt_via_rede: "Red (APRS-IS)",
     btn_search: "Buscar", history_title: "Historial por fecha",
     messages_send_title: "Enviar mensaje APRS", messages_to_ph: "Indicativo destino (ej: LU5JB-9)",
-    messages_text_ph: "Texto del mensaje", btn_send: "Enviar", messages_sent_title: "Mensajes enviados",
+    messages_text_ph: "Texto del mensaje", btn_send: "Enviar", messages_sent_title: "Mensajes (enviados y recibidos)",
     settings_title: "Configuración de tu digi",
     settings_hint: "Cada persona usa un equipo diferente — completa la IP y los puertos de TU digipeater en tu red local. Nada de esto se comparte, queda solo en tu computadora.",
     settings_section_digi: "Tu digipeater", settings_callsign: "Indicativo del digi",
@@ -551,9 +568,10 @@ const TRANSLATIONS = {
     objects_hint: "Envía un Object Report como vos lo configures — no necesita tener relación con la posición de tu digi (podés marcar un punto de encuentro, un relay temporal, una alerta de zona, etc.).",
     obj_active: "Activo", obj_permanent: "Permanente (nunca expira)", obj_sent: "Enviados:",
     obj_name: "Nombre (hasta 9 car.)", obj_lat: "Latitud", obj_lon: "Longitud",
-    obj_table: "Tabla (1 car.)", obj_symbol: "Símbolo (1 car.)", obj_text: "Comentario (hasta 43 car.)",
+    obj_table: "Tabla (1 car.)", obj_symbol: "Símbolo", obj_text: "Comentario (hasta 43 car.)",
     obj_mode: "Frecuencia de envío", obj_mode_interval: "Intervalo elegido", obj_mode_fixed: "Fijo (15 min)",
     obj_interval: "Intervalo", obj_activefor: "Activo por", obj_limit: "Límite de envíos",
+    btn_choose_symbol: "Elegir símbolo…", tbl_primary: "Tabla primaria (/)", tbl_secondary: "Tabla secundaria (\\)",
   },
   en: {
     app_title: "APRS Digipeater Dashboard",
@@ -576,7 +594,7 @@ const TRANSLATIONS = {
     opt_via_direto: "Direct", opt_via_repetido: "Relayed (via digipeater)", opt_via_rede: "Network (APRS-IS)",
     btn_search: "Search", history_title: "History by date",
     messages_send_title: "Send APRS message", messages_to_ph: "Destination callsign (e.g. LU5JB-9)",
-    messages_text_ph: "Message text", btn_send: "Send", messages_sent_title: "Sent messages",
+    messages_text_ph: "Message text", btn_send: "Send", messages_sent_title: "Messages (sent and received)",
     settings_title: "Your digi's settings",
     settings_hint: "Everyone uses different hardware — fill in the IP and ports of YOUR digipeater on your local network. Nothing here is shared, it stays on your computer only.",
     settings_section_digi: "Your digipeater", settings_callsign: "Digi callsign",
@@ -617,9 +635,10 @@ const TRANSLATIONS = {
     objects_hint: "Sends an Object Report the way you set it up — it doesn't need any relation to your digi's own position (mark a meeting point, a temporary relay, an area alert, etc).",
     obj_active: "Active", obj_permanent: "Permanent (never expires)", obj_sent: "Sent:",
     obj_name: "Name (up to 9 chars)", obj_lat: "Latitude", obj_lon: "Longitude",
-    obj_table: "Table (1 char)", obj_symbol: "Symbol (1 char)", obj_text: "Comment (up to 43 chars)",
+    obj_table: "Table (1 char)", obj_symbol: "Symbol", obj_text: "Comment (up to 43 chars)",
     obj_mode: "Send frequency", obj_mode_interval: "Chosen interval", obj_mode_fixed: "Fixed (15 min)",
     obj_interval: "Interval", obj_activefor: "Active for", obj_limit: "Send limit",
+    btn_choose_symbol: "Choose symbol…", tbl_primary: "Primary table (/)", tbl_secondary: "Secondary table (\\)",
   },
 };
 
@@ -931,6 +950,62 @@ function updateBlnCharCount(bi) {
   el.classList.toggle('over', len > 50);
 }
 
+// --- APRS symbol picker (ícones reais do aprs.fi, sprite hessu/aprs-symbols) ---
+const APRS_SYM_ROWS = [
+  '!"#$%&\'()*+,-./0', '123456789:;<=>?@', 'ABCDEFGHIJKLMNOP',
+  'QRSTUVWXYZ[\\]^_`', 'abcdefghijklmnop', 'qrstuvwxyz{|}~'
+];
+function aprsEscAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function aprsSymbolRC(ch) {
+  for (let r = 0; r < APRS_SYM_ROWS.length; r++) {
+    const c = APRS_SYM_ROWS[r].indexOf(ch);
+    if (c !== -1) return [r, c];
+  }
+  return [0, 0];
+}
+function aprsIconPos(ch) {
+  const [r, c] = aprsSymbolRC(ch);
+  return `background-position:-${c * 24}px -${r * 24}px;`;
+}
+function buildSymbolGrid(oi, table) {
+  const tClass = (table === '\\') ? 't1' : 't0';
+  let html = '';
+  APRS_SYM_ROWS.forEach((rowStr) => {
+    for (const ch of rowStr) {
+      html += `<span class="aprs-icon pick ${tClass}" style="${aprsIconPos(ch)}" title="${table}${aprsEscAttr(ch)}" data-oi="${oi}" data-char="${aprsEscAttr(ch)}"></span>`;
+    }
+  });
+  return html;
+}
+function toggleSymbolPicker(oi) {
+  $(`obj-picker-${oi}`).classList.toggle('open');
+}
+function switchSymbolTable(oi, tableIdx) {
+  const table = tableIdx === 1 ? '\\' : '/';
+  $(`obj-tab0-${oi}`).classList.toggle('active', tableIdx === 0);
+  $(`obj-tab1-${oi}`).classList.toggle('active', tableIdx === 1);
+  $(`obj-grid-${oi}`).innerHTML = buildSymbolGrid(oi, table);
+  $(`obj-grid-${oi}`).dataset.table = table;
+}
+function pickObjSymbol(oi, table, ch) {
+  $(`obj-table-${oi}`).value = table;
+  $(`obj-symbol-${oi}`).value = ch;
+  const preview = $(`obj-preview-${oi}`);
+  preview.className = `aprs-icon ${table === '\\' ? 't1' : 't0'}`;
+  preview.setAttribute('style', aprsIconPos(ch));
+  $(`obj-code-${oi}`).textContent = `${table}${ch}`;
+  $(`obj-picker-${oi}`).classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('.aprs-symbol-grid .aprs-icon');
+  if (!el) return;
+  const oi = parseInt(el.dataset.oi, 10);
+  const table = $(`obj-grid-${oi}`).dataset.table || '/';
+  pickObjSymbol(oi, table, el.dataset.char);
+});
+
 function renderObjectsList() {
   const cards = (msgTabData.objects || []).map((slot, oi) => {
     const text = slot.text || '';
@@ -961,13 +1036,22 @@ function renderObjectsList() {
           <input id="obj-lon-${oi}" type="number" step="0.0001" value="${slot.lon || 0}">
           <button type="button" class="action secondary" style="margin-top:6px;" onclick="useMyLocationForObject(${oi})" data-i18n="btn_use_my_location">Usar minha localização (navegador)</button>
         </div>
-        <div class="field">
-          <label data-i18n="obj_table">Tabela (1 car.)</label>
-          <input id="obj-table-${oi}" maxlength="1" value="${slot.table || '/'}">
-        </div>
-        <div class="field">
-          <label data-i18n="obj_symbol">Símbolo (1 car.)</label>
-          <input id="obj-symbol-${oi}" maxlength="1" value="${slot.symbol || 'r'}">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label data-i18n="obj_symbol">Símbolo</label>
+          <input type="hidden" id="obj-table-${oi}" value="${slot.table || '/'}">
+          <input type="hidden" id="obj-symbol-${oi}" value="${slot.symbol || 'r'}">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="aprs-icon ${(slot.table === '\\') ? 't1' : 't0'}" id="obj-preview-${oi}" style="${aprsIconPos(slot.symbol || 'r')}"></span>
+            <button type="button" class="action secondary" onclick="toggleSymbolPicker(${oi})" data-i18n="btn_choose_symbol">Escolher símbolo…</button>
+            <span style="font-size:12px; color:var(--muted);" id="obj-code-${oi}">${slot.table || '/'}${slot.symbol || 'r'}</span>
+          </div>
+          <div class="aprs-symbol-picker" id="obj-picker-${oi}" data-oi="${oi}">
+            <div class="aprs-table-tabs">
+              <button type="button" id="obj-tab0-${oi}" class="${(slot.table !== '\\') ? 'active' : ''}" onclick="switchSymbolTable(${oi}, 0)" data-i18n="tbl_primary">Tabela primária (/)</button>
+              <button type="button" id="obj-tab1-${oi}" class="${(slot.table === '\\') ? 'active' : ''}" onclick="switchSymbolTable(${oi}, 1)" data-i18n="tbl_secondary">Tabela secundária (\)</button>
+            </div>
+            <div class="aprs-symbol-grid" id="obj-grid-${oi}" data-table="${slot.table === '\\' ? '\\' : '/'}">${buildSymbolGrid(oi, slot.table || '/')}</div>
+          </div>
         </div>
         <div class="field" style="grid-column: 1 / -1;">
           <label data-i18n="obj_text">Comentário (até 43 car.)</label>
