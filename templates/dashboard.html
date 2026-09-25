@@ -288,6 +288,37 @@
         <tbody id="messages-list"></tbody>
       </table>
     </div>
+
+    <div class="panel">
+      <h2 data-i18n="bln_title">Boletins automáticos (Alerts + News)</h2>
+      <p class="hint" data-i18n="bln_hint">Repetem sozinhos no intervalo escolhido. Alerts (BLN1-4) mandam sempre no mesmo intervalo; News (NEWS5-9) começam logo e depois vão espaçando cada vez mais. Texto realmente transmitido é limitado a ~50 caracteres — acima disso pode sair cortado no ar.</p>
+      <table>
+        <thead><tr>
+          <th data-i18n="th_bln_slot">Slot</th>
+          <th data-i18n="th_bln_active">Ativo</th>
+          <th data-i18n="th_bln_text">Texto</th>
+          <th data-i18n="th_bln_interval">Intervalo</th>
+          <th data-i18n="th_bln_activefor">Ativo por</th>
+          <th data-i18n="th_bln_limit">Limite envios</th>
+          <th data-i18n="th_bln_sent">Enviados</th>
+        </tr></thead>
+        <tbody id="bln-table-body"></tbody>
+      </table>
+      <div style="margin-top:14px;">
+        <button class="action" id="msgtab-save-btn" onclick="saveMsgTab()" data-i18n="btn_save">Salvar</button>
+        <span id="msgtab-status" style="margin-left:10px; font-size:13px;"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="objects_title">Objects (posições/marcadores independentes)</h2>
+      <p class="hint" data-i18n="objects_hint">Manda um Object Report do jeito que você configurar — não precisa ter relação com a posição do seu digi (pode marcar um ponto de encontro, um relay temporário, um alerta de área, etc.).</p>
+      <div id="objects-list"></div>
+      <div style="margin-top:4px;">
+        <button class="action" id="msgtab-save-btn-2" onclick="saveMsgTab()" data-i18n="btn_save">Salvar</button>
+        <span id="msgtab-status-2" style="margin-left:10px; font-size:13px;"></span>
+      </div>
+    </div>
   </section>
 
   <section id="tab-settings" class="tab">
@@ -377,6 +408,8 @@
         <tr><td>Github:</td><td><a href="https://github.com/marceloferreirachile" target="_blank" rel="noopener">github.com/marceloferreirachile</a></td></tr>
         <tr><td>WhatsApp:</td><td><a href="https://wa.me/5493442311119" target="_blank" rel="noopener">wa.me/5493442311119</a></td></tr>
         <tr><td>Donate:</td><td><a href="https://paypal.me/MarceloFerreira673" target="_blank" rel="noopener">paypal.me/MarceloFerreira673</a></td></tr>
+        <tr><td>Version:</td><td>v1.1.0</td></tr>
+        <tr><td>Changes:</td><td>- Nova aba Mensagens: BLN Alerts/News (9 slots, intervalo/limite/duracao configuraveis) e Objects (4 slots, posicao fixa ou minha localizacao)<br>- Contador de caracteres em tempo real nos campos de texto (BLN/Objects)</td></tr>
       </table>
     </div>
   </section>
@@ -444,6 +477,17 @@ const TRANSLATIONS = {
     settings_ssid_hint: "O número depois do traço no indicativo (ex: o \"10\" em LU6JMF-10) — identifica o equipamento, nada a ver com WiFi.",
     settings_aprsis_radius: "Server Filter (raio, km)",
     settings_aprsis_radius_hint: "Igual ao Server Filter da aba IGATE do digi, mas é a conexão do dashboard com a rede — independente da dele. Padrão: 20km.",
+    bln_title: "Boletins automáticos (Alerts + News)",
+    bln_hint: "Repetem sozinhos no intervalo escolhido. Alerts (BLN1-4) mandam sempre no mesmo intervalo; News (NEWS5-9) começam logo e depois vão espaçando cada vez mais. Texto realmente transmitido é limitado a ~50 caracteres — acima disso pode sair cortado no ar.",
+    th_bln_slot: "Slot", th_bln_active: "Ativo", th_bln_text: "Texto", th_bln_interval: "Intervalo",
+    th_bln_activefor: "Ativo por", th_bln_limit: "Limite envios", th_bln_sent: "Enviados",
+    objects_title: "Objects (posições/marcadores independentes)",
+    objects_hint: "Manda um Object Report do jeito que você configurar — não precisa ter relação com a posição do seu digi (pode marcar um ponto de encontro, um relay temporário, um alerta de área, etc.).",
+    obj_active: "Ativo", obj_permanent: "Permanente (nunca expira)", obj_sent: "Enviados:",
+    obj_name: "Nome (até 9 car.)", obj_lat: "Latitude", obj_lon: "Longitude",
+    obj_table: "Tabela (1 car.)", obj_symbol: "Símbolo (1 car.)", obj_text: "Comentário (até 43 car.)",
+    obj_mode: "Frequência de envio", obj_mode_interval: "Intervalo escolhido", obj_mode_fixed: "Fixo (15 min)",
+    obj_interval: "Intervalo", obj_activefor: "Ativo por", obj_limit: "Limite envios",
   },
   es: {
     app_title: "APRS Digipeater Dashboard",
@@ -499,6 +543,17 @@ const TRANSLATIONS = {
     settings_ssid_hint: "El número después del guion en el indicativo (ej: el \"10\" en LU6JMF-10) — identifica el equipo, nada que ver con WiFi.",
     settings_aprsis_radius: "Server Filter (radio, km)",
     settings_aprsis_radius_hint: "Igual al Server Filter de la pestaña IGATE del digi, pero es la conexión del dashboard con la red — independiente de la de él. Por defecto: 20km.",
+    bln_title: "Boletines automáticos (Alerts + News)",
+    bln_hint: "Se repiten solos en el intervalo elegido. Alerts (BLN1-4) mandan siempre en el mismo intervalo; News (NEWS5-9) empiezan enseguida y después van espaciando cada vez más. El texto realmente transmitido está limitado a ~50 caracteres — más que eso puede salir cortado en el aire.",
+    th_bln_slot: "Slot", th_bln_active: "Activo", th_bln_text: "Texto", th_bln_interval: "Intervalo",
+    th_bln_activefor: "Activo por", th_bln_limit: "Límite de envíos", th_bln_sent: "Enviados",
+    objects_title: "Objects (posiciones/marcadores independientes)",
+    objects_hint: "Envía un Object Report como vos lo configures — no necesita tener relación con la posición de tu digi (podés marcar un punto de encuentro, un relay temporal, una alerta de zona, etc.).",
+    obj_active: "Activo", obj_permanent: "Permanente (nunca expira)", obj_sent: "Enviados:",
+    obj_name: "Nombre (hasta 9 car.)", obj_lat: "Latitud", obj_lon: "Longitud",
+    obj_table: "Tabla (1 car.)", obj_symbol: "Símbolo (1 car.)", obj_text: "Comentario (hasta 43 car.)",
+    obj_mode: "Frecuencia de envío", obj_mode_interval: "Intervalo elegido", obj_mode_fixed: "Fijo (15 min)",
+    obj_interval: "Intervalo", obj_activefor: "Activo por", obj_limit: "Límite de envíos",
   },
   en: {
     app_title: "APRS Digipeater Dashboard",
@@ -554,6 +609,17 @@ const TRANSLATIONS = {
     settings_ssid_hint: "The number after the dash in the callsign (e.g. the \"10\" in LU6JMF-10) — identifies the device, nothing to do with WiFi.",
     settings_aprsis_radius: "Server Filter (radius, km)",
     settings_aprsis_radius_hint: "Same idea as the Server Filter on the digi's IGATE tab, but this is the dashboard's own connection to the network — independent of the digi's. Default: 20km.",
+    bln_title: "Automatic bulletins (Alerts + News)",
+    bln_hint: "They repeat on their own at the chosen interval. Alerts (BLN1-4) always send at the same interval; News (NEWS5-9) start right away and then space out more and more. The text actually transmitted is limited to ~50 characters — beyond that it may get cut off on the air.",
+    th_bln_slot: "Slot", th_bln_active: "Active", th_bln_text: "Text", th_bln_interval: "Interval",
+    th_bln_activefor: "Active for", th_bln_limit: "Send limit", th_bln_sent: "Sent",
+    objects_title: "Objects (independent positions/markers)",
+    objects_hint: "Sends an Object Report the way you set it up — it doesn't need any relation to your digi's own position (mark a meeting point, a temporary relay, an area alert, etc).",
+    obj_active: "Active", obj_permanent: "Permanent (never expires)", obj_sent: "Sent:",
+    obj_name: "Name (up to 9 chars)", obj_lat: "Latitude", obj_lon: "Longitude",
+    obj_table: "Table (1 char)", obj_symbol: "Symbol (1 char)", obj_text: "Comment (up to 43 chars)",
+    obj_mode: "Send frequency", obj_mode_interval: "Chosen interval", obj_mode_fixed: "Fixed (15 min)",
+    obj_interval: "Interval", obj_activefor: "Active for", obj_limit: "Send limit",
   },
 };
 
@@ -579,7 +645,7 @@ function setLang(lang) {
   loadRankings();
   if ($('tab-search').classList.contains('active')) runSearch();
   if ($('tab-history').classList.contains('active')) loadHistoryDates();
-  if ($('tab-messages').classList.contains('active')) loadMessages();
+  if ($('tab-messages').classList.contains('active')) { loadMessages(); loadMsgTab(); }
 }
 
 document.querySelectorAll('.lang-switch button').forEach(btn => {
@@ -596,7 +662,7 @@ document.querySelectorAll('nav button').forEach(btn => {
     btn.classList.add('active');
     $('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'history') loadHistoryDates();
-    if (btn.dataset.tab === 'messages') loadMessages();
+    if (btn.dataset.tab === 'messages') { loadMessages(); loadMsgTab(); }
     if (btn.dataset.tab === 'settings') loadSettings();
     if (btn.dataset.tab === 'about') loadAbout();
   });
@@ -811,6 +877,209 @@ async function loadMessages() {
       <td>${r.status === 'enviada' ? `<span class="status-pending">${r.status}</span>` : `<span class="status-ok">${r.status}</span>`}</td>
     </tr>
   `).join('') : `<tr><td class="empty" colspan="5">${t('txt_no_messages')}</td></tr>`;
+}
+
+// ---------------------------------------------------------------------
+// Fase 2: BLN Alerts/News + Objects (aba Mensagens)
+// ---------------------------------------------------------------------
+let msgTabData = null;
+const BLN_INTERVAL_OPTS = [300, 600, 900, 1800, 3600];
+const ACTIVE_FOR_OPTS = [24, 36, 48, 72];
+const OBJ_INTERVAL_OPTS = [900, 1800, 3600];
+
+function blnLabel(bi) { return bi < 4 ? `BLN${bi + 1}` : `NEWS${bi + 1}`; }
+function minLabel(sec) { return `${sec / 60} min`; }
+function hourLabel(h) { return `${h}h`; }
+
+function selectHtml(id, options, selected, labelFn) {
+  return `<select id="${id}">` +
+    options.map(v => `<option value="${v}" ${Number(v) === Number(selected) ? 'selected' : ''}>${labelFn(v)}</option>`).join('') +
+    `</select>`;
+}
+
+async function loadMsgTab() {
+  msgTabData = await jget('/api/msg_tab');
+  renderBlnTable();
+  renderObjectsList();
+}
+
+function renderBlnTable() {
+  const rows = (msgTabData.bln || []).map((slot, bi) => {
+    const text = slot.text || '';
+    const over = text.length > 50;
+    return `
+    <tr>
+      <td><b>${blnLabel(bi)}</b></td>
+      <td><input type="checkbox" id="bln-en-${bi}" ${slot.enabled ? 'checked' : ''}></td>
+      <td>
+        <textarea id="bln-text-${bi}" maxlength="67" style="width:220px; min-height:34px;" oninput="updateBlnCharCount(${bi})">${text}</textarea>
+        <div class="char-count ${over ? 'over' : ''}" id="bln-count-${bi}">${text.length} / 50</div>
+      </td>
+      <td>${selectHtml(`bln-interval-${bi}`, BLN_INTERVAL_OPTS, slot.interval || 1800, minLabel)}</td>
+      <td>${selectHtml(`bln-activefor-${bi}`, ACTIVE_FOR_OPTS, slot.active_for || 24, hourLabel)}</td>
+      <td><input type="number" id="bln-limit-${bi}" min="0" value="${slot.limit || 0}" style="width:70px;"></td>
+      <td>${slot.sent || 0}</td>
+    </tr>`;
+  }).join('');
+  $('bln-table-body').innerHTML = rows;
+}
+
+function updateBlnCharCount(bi) {
+  const len = $(`bln-text-${bi}`).value.length;
+  const el = $(`bln-count-${bi}`);
+  el.textContent = `${len} / 50`;
+  el.classList.toggle('over', len > 50);
+}
+
+function renderObjectsList() {
+  const cards = (msgTabData.objects || []).map((slot, oi) => {
+    const text = slot.text || '';
+    const over = text.length > 43;
+    return `
+    <div class="panel" style="margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:10px;">
+        <b>Object${oi + 1}</b>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          <input type="checkbox" id="obj-en-${oi}" ${slot.enabled ? 'checked' : ''}> <span data-i18n="obj_active">Ativo</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px;">
+          <input type="checkbox" id="obj-perm-${oi}" ${slot.permanent ? 'checked' : ''} onchange="toggleObjPermanent(${oi})"> <span data-i18n="obj_permanent">Permanente (nunca expira)</span>
+        </label>
+        <span style="font-size:12px; color:var(--muted);"><span data-i18n="obj_sent">Enviados:</span> ${slot.sent || 0}</span>
+      </div>
+      <div class="settings-form">
+        <div class="field">
+          <label data-i18n="obj_name">Nome (até 9 car.)</label>
+          <input id="obj-name-${oi}" maxlength="9" value="${slot.name || ''}" placeholder="PONTO1">
+        </div>
+        <div class="field">
+          <label data-i18n="obj_lat">Latitude</label>
+          <input id="obj-lat-${oi}" type="number" step="0.0001" value="${slot.lat || 0}">
+        </div>
+        <div class="field">
+          <label data-i18n="obj_lon">Longitude</label>
+          <input id="obj-lon-${oi}" type="number" step="0.0001" value="${slot.lon || 0}">
+          <button type="button" class="action secondary" style="margin-top:6px;" onclick="useMyLocationForObject(${oi})" data-i18n="btn_use_my_location">Usar minha localização (navegador)</button>
+        </div>
+        <div class="field">
+          <label data-i18n="obj_table">Tabela (1 car.)</label>
+          <input id="obj-table-${oi}" maxlength="1" value="${slot.table || '/'}">
+        </div>
+        <div class="field">
+          <label data-i18n="obj_symbol">Símbolo (1 car.)</label>
+          <input id="obj-symbol-${oi}" maxlength="1" value="${slot.symbol || 'r'}">
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label data-i18n="obj_text">Comentário (até 43 car.)</label>
+          <input id="obj-text-${oi}" maxlength="43" value="${text}" oninput="updateObjCharCount(${oi})" style="width:100%;">
+          <div class="char-count ${over ? 'over' : ''}" id="obj-count-${oi}">${text.length} / 43</div>
+        </div>
+        <div class="field">
+          <label data-i18n="obj_mode">Frequência de envio</label>
+          <select id="obj-mode-${oi}" onchange="toggleObjMode(${oi})">
+            <option value="0" ${Number(slot.mode) === 0 ? 'selected' : ''} data-i18n="obj_mode_interval">Intervalo escolhido</option>
+            <option value="1" ${Number(slot.mode) === 1 ? 'selected' : ''} data-i18n="obj_mode_fixed">Fixo (15 min)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label data-i18n="obj_interval">Intervalo</label>
+          ${selectHtml(`obj-interval-${oi}`, OBJ_INTERVAL_OPTS, slot.interval || 900, minLabel)}
+        </div>
+        <div class="field">
+          <label data-i18n="obj_activefor">Ativo por</label>
+          ${selectHtml(`obj-activefor-${oi}`, ACTIVE_FOR_OPTS, slot.active_for || 72, hourLabel)}
+        </div>
+        <div class="field">
+          <label data-i18n="obj_limit">Limite envios</label>
+          <input id="obj-limit-${oi}" type="number" min="0" value="${slot.limit || 0}">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  $('objects-list').innerHTML = cards;
+  msgTabData.objects.forEach((slot, oi) => { toggleObjMode(oi); toggleObjPermanent(oi); });
+  applyTranslations();
+}
+
+function updateObjCharCount(oi) {
+  const len = $(`obj-text-${oi}`).value.length;
+  const el = $(`obj-count-${oi}`);
+  el.textContent = `${len} / 43`;
+  el.classList.toggle('over', len > 43);
+}
+
+function toggleObjMode(oi) {
+  $(`obj-interval-${oi}`).disabled = ($(`obj-mode-${oi}`).value === '1');
+}
+
+function toggleObjPermanent(oi) {
+  $(`obj-activefor-${oi}`).disabled = $(`obj-perm-${oi}`).checked;
+}
+
+function useMyLocationForObject(oi) {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition((pos) => {
+    $(`obj-lat-${oi}`).value = pos.coords.latitude.toFixed(4);
+    $(`obj-lon-${oi}`).value = pos.coords.longitude.toFixed(4);
+  });
+}
+
+function collectMsgTabPayload() {
+  const bln = [];
+  for (let bi = 0; bi < 9; bi++) {
+    bln.push({
+      enabled: $(`bln-en-${bi}`).checked,
+      text: $(`bln-text-${bi}`).value,
+      interval: parseInt($(`bln-interval-${bi}`).value, 10),
+      limit: parseInt($(`bln-limit-${bi}`).value || '0', 10),
+      active_for: parseInt($(`bln-activefor-${bi}`).value, 10),
+    });
+  }
+  const objects = [];
+  for (let oi = 0; oi < 4; oi++) {
+    objects.push({
+      enabled: $(`obj-en-${oi}`).checked,
+      name: $(`obj-name-${oi}`).value,
+      lat: parseFloat($(`obj-lat-${oi}`).value || '0'),
+      lon: parseFloat($(`obj-lon-${oi}`).value || '0'),
+      table: $(`obj-table-${oi}`).value || '/',
+      symbol: $(`obj-symbol-${oi}`).value || 'r',
+      text: $(`obj-text-${oi}`).value,
+      mode: parseInt($(`obj-mode-${oi}`).value, 10),
+      interval: parseInt($(`obj-interval-${oi}`).value, 10),
+      limit: parseInt($(`obj-limit-${oi}`).value || '0', 10),
+      active_for: parseInt($(`obj-activefor-${oi}`).value, 10),
+      permanent: $(`obj-perm-${oi}`).checked,
+    });
+  }
+  return { bln, objects };
+}
+
+async function saveMsgTab() {
+  const btns = [$('msgtab-save-btn'), $('msgtab-save-btn-2')];
+  const statusEls = [$('msgtab-status'), $('msgtab-status-2')];
+  btns.forEach(b => b.disabled = true);
+  statusEls.forEach(s => s.textContent = t('txt_saving'));
+  try {
+    const r = await fetch('/api/msg_tab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectMsgTabPayload())
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      statusEls.forEach(s => s.innerHTML = `<span class="status-pending">${t('txt_save_error')} ${data.detail || ''}</span>`);
+    } else {
+      msgTabData = data.msg_tab;
+      renderBlnTable();
+      renderObjectsList();
+      statusEls.forEach(s => s.innerHTML = `<span class="status-ok">${t('txt_saved')}</span>`);
+    }
+  } catch (e) {
+    statusEls.forEach(s => s.innerHTML = `<span class="status-pending">${t('txt_conn_error')} ${e}</span>`);
+  } finally {
+    btns.forEach(b => b.disabled = false);
+  }
 }
 
 // ---------------------------------------------------------------------

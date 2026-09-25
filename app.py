@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 import db
-from aprs_client import AprsFeeds
+from aprs_client import AprsFeeds, MsgScheduler
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
@@ -17,7 +17,7 @@ log = logging.getLogger("app")
 # Bump isso a cada release (tem que bater com a tag "vX.Y.Z" no GitHub) — é o
 # que a aba "Sobre" usa pra comparar com a última Release e avisar de
 # atualização disponível.
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.1.0"
 GITHUB_REPO = "marceloferreirachile/aprs-dashboard"
 
 # BASE_DIR: onde ficam os arquivos empacotados (templates, config.yaml.example)
@@ -51,6 +51,13 @@ else:
 CONFIG_PATH = os.path.join(DATA_DIR, "config.yaml")
 
 
+def _safe_int(v, default=0):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return default
+
+
 def load_config():
     if not os.path.exists(CONFIG_PATH):
         example = os.path.join(BASE_DIR, "config.yaml.example")
@@ -64,11 +71,37 @@ def load_config():
         return yaml.safe_load(f)
 
 
+def _ensure_msg_tab_defaults(cfg):
+    """config.yaml de quem já usava o app antes da Fase 2 não tem "msg_tab" -
+    preenche com os defaults do example, sem tocar em nada que já existia."""
+    if not cfg.get("msg_tab"):
+        example_path = os.path.join(BASE_DIR, "config.yaml.example")
+        with open(example_path, "r", encoding="utf-8") as f:
+            example = yaml.safe_load(f) or {}
+        cfg["msg_tab"] = example.get("msg_tab", {"bln": [], "objects": []})
+    return cfg
+
+
 config = load_config()
+config = _ensure_msg_tab_defaults(config)
 db.configure(os.path.join(DATA_DIR, config.get("database", {}).get("path", "aprs_dashboard.db")))
 db.init_db()
 
 app = FastAPI(title="APRS Digipeater Dashboard")
+
+
+def _make_message_sender():
+    """Não usa feeds.make_message_sender diretamente (bound method) porque
+    /api/settings troca o objeto feeds inteiro quando a config muda - olhando
+    sempre app.state.feeds na hora da chamada, o MsgScheduler nunca fica
+    preso numa conexão/config velha."""
+    feeds = getattr(app.state, "feeds", None)
+    return feeds.make_message_sender() if feeds else None
+
+
+def _save_config_to_disk():
+    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+        yaml.safe_dump(config, f, allow_unicode=True, sort_keys=False)
 
 
 @app.on_event("startup")
@@ -76,7 +109,13 @@ def startup():
     feeds = AprsFeeds(config)
     feeds.start()
     app.state.feeds = feeds
-    log.info("Feeds iniciados para %s", config["digi"]["callsign"])
+
+    scheduler = MsgScheduler(config, make_sender=_make_message_sender)
+    scheduler.on_change = _save_config_to_disk
+    scheduler.start()
+    app.state.msg_scheduler = scheduler
+
+    log.info("Feeds e MsgScheduler iniciados para %s", config["digi"]["callsign"])
 
 
 @app.on_event("shutdown")
@@ -84,6 +123,9 @@ def shutdown():
     feeds = getattr(app.state, "feeds", None)
     if feeds:
         feeds.stop()
+    scheduler = getattr(app.state, "msg_scheduler", None)
+    if scheduler:
+        scheduler.stop()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -336,6 +378,64 @@ def api_send_message(payload: dict = Body(...)):
     from_display = f"{sender.my_callsign}-{sender.my_ssid}" if sender.my_ssid else sender.my_callsign
     db.insert_message(to_station=to_call, from_station=from_display, text=text, msgid=msgid)
     return {"ok": True, "to": to_call, "text": text, "msgid": msgid}
+
+
+# --- Fase 2: BLN Alerts/News + Objects (mesma estrutura/lógica do firmware,
+# enviado por aqui pela porta de TX) -----------------------------------------
+@app.get("/api/msg_tab")
+def api_get_msg_tab():
+    return config.get("msg_tab", {"bln": [], "objects": []})
+
+
+@app.post("/api/msg_tab")
+def api_save_msg_tab(payload: dict = Body(...)):
+    bln_in = payload.get("bln")
+    obj_in = payload.get("objects")
+    if not isinstance(bln_in, list) or len(bln_in) != 9:
+        raise HTTPException(400, "'bln' precisa ser uma lista com 9 posições (BLN1-4 Alerts + NEWS5-9).")
+    if not isinstance(obj_in, list) or len(obj_in) != 4:
+        raise HTTPException(400, "'objects' precisa ser uma lista com 4 posições (Object1-4).")
+
+    msg_tab = config.setdefault("msg_tab", {"bln": [], "objects": []})
+    bln_out = []
+    for bi, incoming in enumerate(bln_in):
+        prev = msg_tab["bln"][bi] if bi < len(msg_tab.get("bln", [])) else {}
+        was_enabled = bool(prev.get("enabled"))
+        slot = {
+            "enabled": bool(incoming.get("enabled")),
+            "text": str(incoming.get("text") or "")[:67],
+            "interval": _safe_int(incoming.get("interval"), 1800),
+            "limit": _safe_int(incoming.get("limit"), 0),
+            "active_for": _safe_int(incoming.get("active_for"), 0),
+            "sent": 0 if (not was_enabled and incoming.get("enabled")) else int(prev.get("sent") or 0),
+        }
+        bln_out.append(slot)
+    msg_tab["bln"] = bln_out
+
+    obj_out = []
+    for oi, incoming in enumerate(obj_in):
+        prev = msg_tab["objects"][oi] if oi < len(msg_tab.get("objects", [])) else {}
+        was_enabled = bool(prev.get("enabled"))
+        slot = {
+            "enabled": bool(incoming.get("enabled")),
+            "name": str(incoming.get("name") or "")[:9],
+            "lat": float(incoming.get("lat") or 0.0),
+            "lon": float(incoming.get("lon") or 0.0),
+            "table": str(incoming.get("table") or "/")[:1],
+            "symbol": str(incoming.get("symbol") or "r")[:1],
+            "text": str(incoming.get("text") or "")[:43],
+            "mode": _safe_int(incoming.get("mode"), 0),
+            "interval": _safe_int(incoming.get("interval"), 900),
+            "limit": _safe_int(incoming.get("limit"), 0),
+            "active_for": _safe_int(incoming.get("active_for"), 0),
+            "permanent": bool(incoming.get("permanent")),
+            "sent": 0 if (not was_enabled and incoming.get("enabled")) else int(prev.get("sent") or 0),
+        }
+        obj_out.append(slot)
+    msg_tab["objects"] = obj_out
+
+    _save_config_to_disk()
+    return {"ok": True, "msg_tab": msg_tab}
 
 
 if os.path.isdir(os.path.join(BASE_DIR, "static")):

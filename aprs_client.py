@@ -303,8 +303,28 @@ class _AprsIsFeed(threading.Thread):
                 backoff = min(backoff * 2, 120)
 
 
+def format_aprs_latlon(lat: float, lon: float) -> str:
+    """DDMM.hhN/DDDMM.hhW - mesma conta do firmware (DD_DDDDDtoDDMMSS): graus
+    inteiros + minutos.centesimos, nunca minutos/segundos."""
+    lat_ns = "N" if lat >= 0 else "S"
+    lon_ew = "E" if lon >= 0 else "W"
+    lat = abs(lat)
+    lon = abs(lon)
+    lat_dd = int(lat)
+    lat_mm = (lat - lat_dd) * 60
+    lon_dd = int(lon)
+    lon_mm = (lon - lon_dd) * 60
+    return f"{lat_dd:02d}{lat_mm:05.2f}{lat_ns}", f"{lon_dd:03d}{lon_mm:05.2f}{lon_ew}"
+
+
+def aprs_timestamp() -> str:
+    """DDHHMMz em UTC - mesmo formato que getTimeStamp() no firmware."""
+    return time.strftime("%d%H%M", time.gmtime()) + "z"
+
+
 class MessageSender:
-    """Abre uma conexão curta na porta de TX e manda uma mensagem APRS."""
+    """Abre uma conexão curta na porta de TX e manda um pacote APRS (mensagem,
+    boletim/BLN-News - mesmo formato, só muda o endereço - ou Object Report)."""
 
     def __init__(self, host, port, my_callsign, my_ssid=0, path=None):
         self.host = host
@@ -313,18 +333,13 @@ class MessageSender:
         self.my_ssid = my_ssid
         self.path = path or [("WIDE1", 1), ("WIDE2", 1)]
 
-    def send(self, to_call: str, text: str) -> str:
-        to_call = to_call.upper()
-        if "-" in to_call:
-            base, ssid_s = to_call.split("-", 1)
-            addressee = f"{base}-{ssid_s}"
-        else:
-            addressee = to_call
-        addressee_field = addressee.ljust(9)[:9]
-        msgid = str(random.randint(1, 999))
-        info = f":{addressee_field}:{text}{{{msgid}".encode("utf-8")
-
-        dest = encode_callsign("APRS", 0, last=(len(self.path) == 0))
+    def _send_info(self, info: bytes, dest_call: str = "APRS") -> None:
+        """Monta o quadro AX.25 (dest/src/path/control/pid/info), empacota em
+        KISS e manda pela porta de TX. Reaproveitado por send()/send_object()
+        - dest_call (TOCALL) é só identificador de software, não afeta se o
+        pacote é reconhecido como mensagem/boletim/objeto (isso é o Data Type
+        Identifier + endereço dentro do campo de informação)."""
+        dest = encode_callsign(dest_call, 0, last=(len(self.path) == 0))
         src = encode_callsign(self.my_callsign, self.my_ssid, last=(len(self.path) == 0))
         frame = bytearray()
         frame += dest
@@ -338,8 +353,37 @@ class MessageSender:
         kiss_frame = build_kiss_frame(bytes(frame))
         with socket.create_connection((self.host, self.port), timeout=10) as sock:
             sock.sendall(kiss_frame)
+
+    def send(self, to_call: str, text: str) -> str:
+        """Mensagem APRS de verdade (com ACK) OU boletim/News (endereço tipo
+        "BLN1" ou "BLN5NEWS" - mesmo formato de pacote, o rádio que decide
+        que é boletim pelo prefixo "BLN" do endereço, não por nada aqui)."""
+        to_call = to_call.upper()
+        if "-" in to_call:
+            base, ssid_s = to_call.split("-", 1)
+            addressee = f"{base}-{ssid_s}"
+        else:
+            addressee = to_call
+        addressee_field = addressee.ljust(9)[:9]
+        msgid = str(random.randint(1, 999))
+        info = f":{addressee_field}:{text}{{{msgid}".encode("utf-8")
+        self._send_info(info)
         log.info("Mensagem enviada: %s-%s -> %s: %r (msgid %s)", self.my_callsign, self.my_ssid, addressee, text, msgid)
         return msgid
+
+    def send_object(self, name: str, lat: float, lon: float, table: str, symbol: str, comment: str) -> None:
+        """Object Report (;NAME*TIMESTAMPlat/lonSYM+comment) - mesmo formato
+        que sendAPRSObject() no firmware. name é só o rótulo no payload (não
+        precisa bater com nenhum indicativo real); posição é a que você
+        digitou, independente de onde o dashboard está rodando."""
+        obj_name = (name or "").ljust(9)[:9]
+        lat_str, lon_str = format_aprs_latlon(lat, lon)
+        ts = aprs_timestamp()
+        table_ch = (table or "/")[:1]
+        symbol_ch = (symbol or "r")[:1]
+        info = f";{obj_name}*{ts}{lat_str}{table_ch}{lon_str}{symbol_ch}{comment or ''}".encode("utf-8")
+        self._send_info(info)
+        log.info("Object enviado: %s @ %s,%s: %r", name, lat, lon, comment)
 
 
 def detect_position(host, port, callsign, timeout=20):
@@ -530,3 +574,207 @@ class AprsFeeds:
             my_callsign=msg_cfg.get("my_callsign", self.digi_call.split("-")[0]),
             my_ssid=msg_cfg.get("my_ssid", 0),
         )
+
+
+class MsgScheduler(threading.Thread):
+    """Fase 2: espelha a lógica da aba MSG do firmware (BLN Alerts, BLN News
+    e Objects) aqui no dashboard, mandando pela mesma porta de TX usada pelo
+    Chat Message. Config vem de config["msg_tab"] (bln: lista de 9 slots -
+    bi 0-3 = Alerts BLN1-4, bi 4-8 = News BLN5NEWS-BLN9NEWS/rótulo NEWS5-9;
+    objects: lista de 4 slots Object1-4) - mesmos nomes de campo em ambos os
+    lados pra facilitar comparação com main.cpp/webservice.cpp do firmware.
+
+    Estado de runtime (ativação, gap crescente, "sent") é só em memória e
+    reseta a cada reinício do app - igual o firmware reseta esses contadores
+    (não fazem parte da Configuration struct) a cada reboot do ESP32.
+    """
+
+    ALERT_OPTS = (300, 600, 900, 1800, 3600)  # 5/10/15/30/60 min - Alerts e News usam o mesmo dropdown
+    OBJ_FIXED_OPTS = (900, 1800, 3600)  # 15/30/60 min
+    ACTIVE_FOR_OPTS = (24, 36, 48, 72)
+
+    def __init__(self, config, make_sender):
+        super().__init__(name="msg-scheduler", daemon=True)
+        self.config = config  # dict; msg_tab sub-dict é mutado in place (enabled/sent)
+        self.make_sender = make_sender  # callable() -> MessageSender | None
+        self.on_change = None  # callable(), chamado só quando enabled vira False (auto-disable) p/ persistir
+        self._stop_evt = threading.Event()
+        self._bln_activated_at = [0.0] * 9
+        self._bln_news_gap = [0.0] * 9
+        self._bln_news_first_sent = [False] * 9
+        self._bln_next_send = [0.0] * 9
+        self._obj_activated_at = [0.0] * 4
+        self._obj_next_send = [0.0] * 4
+
+    def stop(self):
+        self._stop_evt.set()
+
+    def run(self):
+        while not self._stop_evt.is_set():
+            try:
+                self._tick()
+            except Exception:
+                log.exception("MsgScheduler: erro no ciclo, continuando")
+            self._stop_evt.wait(1.0)
+
+    @staticmethod
+    def bln_label(bi: int) -> str:
+        """Endereço real transmitido no ar - NEWS usa o formato Group Bulletin
+        (BLN + dígito + nome do grupo) pra ser reconhecido como boletim em
+        qualquer rádio, igual o firmware faz desde a v2.1-lu6jmf."""
+        return f"BLN{bi + 1}" if bi < 4 else f"BLN{bi + 1}NEWS"
+
+    @staticmethod
+    def bln_ui_label(bi: int) -> str:
+        """Rótulo só de exibição na UI - NEWS5-NEWS9, igual a tela do firmware."""
+        return f"BLN{bi + 1}" if bi < 4 else f"NEWS{bi + 1}"
+
+    def _tick(self):
+        now = time.time()
+        msg_tab = self.config.get("msg_tab") or {}
+        for bi, slot in enumerate(msg_tab.get("bln") or []):
+            if bi > 8:
+                break
+            self._tick_bln(bi, slot, now)
+        for oi, slot in enumerate(msg_tab.get("objects") or []):
+            if oi > 3:
+                break
+            self._tick_object(oi, slot, now)
+
+    def _tick_bln(self, bi, slot, now):
+        text = (slot.get("text") or "").strip()
+        if not slot.get("enabled") or not text:
+            self._bln_activated_at[bi] = 0
+            if bi >= 4:
+                self._bln_news_first_sent[bi] = False
+                self._bln_news_gap[bi] = 0
+            return
+
+        if self._bln_activated_at[bi] == 0:
+            self._bln_activated_at[bi] = now
+
+        # 0/ausente = default 24h (unificado Alerts+News); nunca passa de 72h
+        active_for_hours = slot.get("active_for") or 0
+        if active_for_hours == 0:
+            active_for_hours = 24
+        if active_for_hours > 72:
+            active_for_hours = 72
+
+        if now - self._bln_activated_at[bi] >= active_for_hours * 3600:
+            slot["enabled"] = False
+            self._bln_activated_at[bi] = 0
+            self._bln_news_first_sent[bi] = False
+            self._bln_news_gap[bi] = 0
+            log.info("%s (%s) atingiu o prazo Active-for (%dh), desativado", self.bln_label(bi), self.bln_ui_label(bi), active_for_hours)
+            if self.on_change:
+                self.on_change()
+            return
+
+        base_t = slot.get("interval") or 1800
+        if base_t < 300:
+            base_t = 300  # piso: 5 min mínimo, igual o firmware
+
+        if bi < 4:
+            # Alerts: intervalo fixo
+            if now >= self._bln_next_send[bi]:
+                if self._send_bln(bi, slot, text):
+                    self._bln_next_send[bi] = now + base_t
+        else:
+            # News: gap crescente. msg1 imediato, depois +2T, +3T, +4T...
+            if not self._bln_news_first_sent[bi]:
+                if self._send_bln(bi, slot, text):
+                    self._bln_news_first_sent[bi] = True
+                    self._bln_news_gap[bi] = base_t * 2
+                    self._bln_next_send[bi] = now + self._bln_news_gap[bi]
+            elif now >= self._bln_next_send[bi]:
+                if self._send_bln(bi, slot, text):
+                    self._bln_news_gap[bi] += base_t
+                    self._bln_next_send[bi] = now + self._bln_news_gap[bi]
+
+    def _send_bln(self, bi, slot, text) -> bool:
+        """Manda e atualiza o contador/limite. Devolve False sem avançar
+        nenhum relógio se o envio falhar (porta de TX indisponível etc.) -
+        assim tenta de novo no próximo ciclo (1s depois) em vez de pular o
+        intervalo inteiro, igual ao retry-sem-bloquear que fizemos no firmware."""
+        sender = self.make_sender()
+        if not sender:
+            log.warning("%s: porta de TX não configurada, envio pulado", self.bln_label(bi))
+            return False
+        addr = self.bln_label(bi)
+        try:
+            sender.send(addr, text)
+        except Exception as e:
+            log.warning("%s: falha ao enviar (%s)", addr, e)
+            return False
+        slot["sent"] = int(slot.get("sent") or 0) + 1
+        log.info("%s (%s) enviado (#%d): %r", addr, self.bln_ui_label(bi), slot["sent"], text)
+        limit = int(slot.get("limit") or 0)
+        if limit > 0 and slot["sent"] >= limit:
+            slot["enabled"] = False
+            self._bln_activated_at[bi] = 0
+            log.info("%s atingiu o limite de envios (%d), desativado", addr, limit)
+            if self.on_change:
+                self.on_change()
+        return True
+
+    def _tick_object(self, oi, slot, now):
+        name = (slot.get("name") or "").strip()
+        if not slot.get("enabled") or len(name) < 3:
+            self._obj_activated_at[oi] = 0
+            self._obj_next_send[oi] = 0
+            slot["sent"] = 0
+            return
+
+        if self._obj_activated_at[oi] == 0:
+            self._obj_activated_at[oi] = now
+
+        permanent = bool(slot.get("permanent"))
+        if not permanent:
+            hours = slot.get("active_for") or 0
+            if hours == 0 or hours > 72:
+                hours = 72  # teto rígido - Objects não tem "default", só o teto
+            if now - self._obj_activated_at[oi] >= hours * 3600:
+                slot["enabled"] = False
+                self._obj_activated_at[oi] = 0
+                log.info("Object%d atingiu o prazo Active-for, desativado", oi + 1)
+                if self.on_change:
+                    self.on_change()
+                return
+
+        mode = int(slot.get("mode") or 0)
+        if mode == 0:
+            ivl = slot.get("interval") or 900
+            if ivl < 900:
+                ivl = 900
+        else:
+            ivl = 900  # modo Active-for: piso fixo de 15 min pro envio, o teto é o Active-for acima
+
+        if now < self._obj_next_send[oi]:
+            return
+
+        sender = self.make_sender()
+        if not sender:
+            return
+        try:
+            sender.send_object(
+                name,
+                float(slot.get("lat") or 0.0),
+                float(slot.get("lon") or 0.0),
+                slot.get("table") or "/",
+                slot.get("symbol") or "r",
+                slot.get("text") or "",
+            )
+        except Exception as e:
+            log.warning("Object%d: falha ao enviar (%s)", oi + 1, e)
+            return  # tenta de novo no próximo ciclo, não avança o relógio
+
+        self._obj_next_send[oi] = now + ivl
+        slot["sent"] = int(slot.get("sent") or 0) + 1
+        log.info("Object%d (%s) enviado (#%d)", oi + 1, name, slot["sent"])
+        limit = int(slot.get("limit") or 0)
+        if not permanent and mode == 0 and limit > 0 and slot["sent"] >= limit:
+            slot["enabled"] = False
+            self._obj_activated_at[oi] = 0
+            log.info("Object%d atingiu o limite de envios (%d), desativado", oi + 1, limit)
+            if self.on_change:
+                self.on_change()

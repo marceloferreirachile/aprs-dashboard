@@ -51,3 +51,26 @@ web:
 
 database:
   path: "aprs_dashboard.db"
+
+# --- Fase 2: MSG tab (BLN Alerts/News + Objects) ------------------------------
+# Mesma estrutura/lógica da aba MSG do firmware, mas enviado por aqui, pela
+# porta de TX (messaging.tx acima). "bln" tem 9 slots: 0-3 = Alerts (BLN1-4,
+# intervalo fixo), 4-8 = News (endereço real BLN5NEWS..BLN9NEWS, rótulo na
+# tela NEWS5-9, progressão de gap crescente). "objects" tem 4 slots
+# (Object1-4, Object Report de posição independente do digi).
+msg_tab:
+  bln:
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+    - {enabled: false, text: "", interval: 1800, limit: 0, active_for: 0, sent: 0}
+  objects:
+    - {enabled: false, name: "", lat: 0.0, lon: 0.0, table: "/", symbol: "r", text: "", mode: 0, interval: 900, limit: 0, active_for: 0, permanent: false, sent: 0}
+    - {enabled: false, name: "", lat: 0.0, lon: 0.0, table: "/", symbol: "r", text: "", mode: 0, interval: 900, limit: 0, active_for: 0, permanent: false, sent: 0}
+    - {enabled: false, name: "", lat: 0.0, lon: 0.0, table: "/", symbol: "r", text: "", mode: 0, interval: 900, limit: 0, active_for: 0, permanent: false, sent: 0}
+    - {enabled: false, name: "", lat: 0.0, lon: 0.0, table: "/", symbol: "r", text: "", mode: 0, interval: 900, limit: 0, active_for: 0, permanent: false, sent: 0}
