@@ -2,6 +2,8 @@ import logging
 import os
 import shutil
 import sys
+from collections import deque
+from datetime import datetime
 
 import yaml
 from fastapi import Body, FastAPI, HTTPException, Query
@@ -15,6 +17,13 @@ from esp32_log_listener import start_listener as start_esp32_log_listener
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
 esp32_log = logging.getLogger("esp32")
+
+# Buffer em memoria com as ultimas linhas de log recebidas do firmware do
+# LU6JMF-10 via UDP (ver esp32_log_listener.py) - alimenta a aba "Log ESP32"
+# no dashboard. So RAM (nao grava em disco), zera a cada reinicio do app -
+# e so pra diagnostico ao vivo, nao e historico permanente.
+ESP32_LOG_MAXLEN = 300
+esp32_log_buffer = deque(maxlen=ESP32_LOG_MAXLEN)
 
 # Bump isso a cada release (tem que bater com a tag "vX.Y.Z" no GitHub) — é o
 # que a aba "Sobre" usa pra comparar com a última Release e avisar de
@@ -121,9 +130,15 @@ def startup():
     # diante) chega aqui por UDP broadcast na porta 9999 - nao depende do IP
     # de nenhum dos dois lados. So aparece linha se o rádio estiver rodando
     # essa build e conectado no WiFi; sem ela, este listener so fica ocioso.
-    app.state.esp32_log_stop = start_esp32_log_listener(
-        on_line=lambda line, ip: esp32_log.info("[%s] %s", ip, line)
-    )
+    def _on_esp32_log_line(line, ip):
+        esp32_log.info("[%s] %s", ip, line)
+        esp32_log_buffer.append({
+            "ts": datetime.now().strftime("%H:%M:%S"),
+            "ip": ip,
+            "line": line,
+        })
+
+    app.state.esp32_log_stop = start_esp32_log_listener(on_line=_on_esp32_log_line)
 
     log.info("Feeds e MsgScheduler iniciados para %s", config["digi"]["callsign"])
 
@@ -153,6 +168,17 @@ def api_config():
         "digi_lat": config["digi"]["lat"],
         "digi_lon": config["digi"]["lon"],
     }
+
+
+@app.get("/api/esp32_log")
+def api_esp32_log():
+    """Ultimas linhas de log do firmware (LU6JMF-10) recebidas por UDP.
+
+    Buffer em memoria (ver esp32_log_buffer acima) - zera a cada reinicio
+    do dashboard, nao e persistido em disco. So tem conteudo se o rádio
+    estiver rodando uma build com o hook de log por UDP (2.1.3-netlog+).
+    """
+    return {"lines": list(esp32_log_buffer)}
 
 
 @app.get("/api/version")

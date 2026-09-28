@@ -154,6 +154,7 @@
   <button data-tab="messages" data-i18n="nav_messages">Mensagens</button>
   <button data-tab="settings" data-i18n="nav_settings">Configurações</button>
   <button data-tab="about" data-i18n="nav_about">Sobre</button>
+  <button data-tab="esp32log" data-i18n="nav_esp32log">Log ESP32</button>
 </nav>
 
 <main>
@@ -430,6 +431,18 @@
     </div>
   </section>
 
+  <section id="tab-esp32log" class="tab">
+    <div class="panel">
+      <h2 data-i18n="esp32log_title">Log ESP32 (ao vivo)</h2>
+      <p style="font-size:13px;opacity:.75" data-i18n="esp32log_hint">
+        Recebido por UDP direto do firmware do LU6JMF-10 (build 2.1.3-netlog ou
+        superior). Só aparece linha se o rádio estiver ligado, no WiFi, e
+        rodando essa build. Buffer local, zera se o dashboard reiniciar.
+      </p>
+      <pre id="esp32log-lines" style="max-height:60vh;overflow-y:auto;background:#0b1420;padding:10px;border-radius:6px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-all;"></pre>
+    </div>
+  </section>
+
 </main>
 
 <script>
@@ -487,6 +500,9 @@ const TRANSLATIONS = {
     txt_locate_fail: "Não consegui obter sua localização. Preencha manualmente.",
     settings_advanced: "Configuração avançada (portas, filtro)",
     nav_about: "Sobre", about_version_title: "Versão instalada",
+    nav_esp32log: "Log ESP32", esp32log_title: "Log ESP32 (ao vivo)",
+    esp32log_hint: "Recebido por UDP direto do firmware do LU6JMF-10 (build 2.1.3-netlog ou superior). Só aparece linha se o rádio estiver ligado, no WiFi, e rodando essa build. Buffer local, zera se o dashboard reiniciar.",
+    esp32log_empty: "(nada recebido ainda)",
     btn_check_updates: "Verificar atualizações", txt_checking_updates: "Verificando no GitHub...",
     txt_up_to_date: "Você já está na versão mais recente.", txt_update_available: "Nova versão disponível:",
     btn_download_update: "Baixar atualização",
@@ -558,6 +574,9 @@ const TRANSLATIONS = {
     txt_locate_fail: "No pude obtener tu ubicación. Completa manualmente.",
     settings_advanced: "Configuración avanzada (puertos, filtro)",
     nav_about: "Sobre", about_version_title: "Versión instalada",
+    nav_esp32log: "Log ESP32", esp32log_title: "Log ESP32 (en vivo)",
+    esp32log_hint: "Recibido por UDP directo del firmware del LU6JMF-10 (build 2.1.3-netlog o superior). Solo aparece línea si el radio está encendido, en WiFi, y corriendo esa build. Buffer local, se borra si el dashboard reinicia.",
+    esp32log_empty: "(nada recibido todavía)",
     btn_check_updates: "Buscar actualizaciones", txt_checking_updates: "Buscando en GitHub...",
     txt_up_to_date: "Ya tenés la última versión.", txt_update_available: "Nueva versión disponible:",
     btn_download_update: "Descargar actualización",
@@ -629,6 +648,9 @@ const TRANSLATIONS = {
     txt_locate_fail: "Couldn't get your location. Fill it in manually.",
     settings_advanced: "Advanced settings (ports, filter)",
     nav_about: "About", about_version_title: "Installed version",
+    nav_esp32log: "ESP32 Log", esp32log_title: "ESP32 Log (live)",
+    esp32log_hint: "Received via UDP directly from the LU6JMF-10 firmware (build 2.1.3-netlog or newer). Only shows lines if the radio is powered, on WiFi, and running that build. Local buffer, clears if the dashboard restarts.",
+    esp32log_empty: "(nothing received yet)",
     btn_check_updates: "Check for updates", txt_checking_updates: "Checking GitHub...",
     txt_up_to_date: "You're already on the latest version.", txt_update_available: "New version available:",
     btn_download_update: "Download update",
@@ -697,6 +719,7 @@ document.querySelectorAll('nav button').forEach(btn => {
     if (btn.dataset.tab === 'messages') { loadMessages(); loadMsgTab(); }
     if (btn.dataset.tab === 'settings') loadSettings();
     if (btn.dataset.tab === 'about') loadAbout();
+    if (btn.dataset.tab === 'esp32log') loadEsp32Log();
   });
 });
 
@@ -1347,9 +1370,27 @@ async function checkForUpdates() {
 applyTranslations();
 loadOverview();
 loadRankings();
+async function loadEsp32Log() {
+  try {
+    const r = await fetch('/api/esp32_log');
+    const data = await r.json();
+    const el = $('esp32log-lines');
+    const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 10;
+    if (!data.lines || data.lines.length === 0) {
+      el.textContent = TRANSLATIONS[currentLang].esp32log_empty || '(nada recebido ainda)';
+      return;
+    }
+    el.textContent = data.lines.map(l => `[${l.ts}] (${l.ip}) ${l.line}`).join('\n');
+    if (wasAtBottom) el.scrollTop = el.scrollHeight;
+  } catch (e) {
+    // silencioso - se o endpoint falhar, so nao atualiza essa passada
+  }
+}
+
 setInterval(loadOverview, 60000);
 setInterval(loadRankings, 60000);
 setInterval(() => { if ($('tab-messages').classList.contains('active')) loadMessages(); }, 15000);
+setInterval(() => { if ($('tab-esp32log').classList.contains('active')) loadEsp32Log(); }, 3000);
 </script>
 
 </body>
