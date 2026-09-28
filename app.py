@@ -10,9 +10,11 @@ from fastapi.staticfiles import StaticFiles
 
 import db
 from aprs_client import AprsFeeds, MsgScheduler
+from esp32_log_listener import start_listener as start_esp32_log_listener
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
+esp32_log = logging.getLogger("esp32")
 
 # Bump isso a cada release (tem que bater com a tag "vX.Y.Z" no GitHub) — é o
 # que a aba "Sobre" usa pra comparar com a última Release e avisar de
@@ -114,6 +116,14 @@ def startup():
     scheduler.on_change = _save_config_to_disk
     scheduler.start()
     app.state.msg_scheduler = scheduler
+
+    # Log de diagnostico do firmware do LU6JMF-10 (build "2.1.3-netlog" em
+    # diante) chega aqui por UDP broadcast na porta 9999 - nao depende do IP
+    # de nenhum dos dois lados. So aparece linha se o rádio estiver rodando
+    # essa build e conectado no WiFi; sem ela, este listener so fica ocioso.
+    app.state.esp32_log_stop = start_esp32_log_listener(
+        on_line=lambda line, ip: esp32_log.info("[%s] %s", ip, line)
+    )
 
     log.info("Feeds e MsgScheduler iniciados para %s", config["digi"]["callsign"])
 
